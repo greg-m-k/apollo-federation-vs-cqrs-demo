@@ -113,4 +113,4 @@ endif
 
 # Run tests
 test:
-	cd tests && npx playwright test
+	npx playwright test tests/

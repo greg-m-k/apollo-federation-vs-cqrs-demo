@@ -150,14 +150,14 @@ if (-not $SkipBuild) {
     Write-Host ""
 
     $services = @(
-        "hr-subgraph",
-        "employment-subgraph",
-        "security-subgraph",
-        "hr-cdc-service",
-        "employment-cdc-service",
-        "security-cdc-service",
-        "cdc-projection-consumer",
-        "cdc-query-service"
+        "services/federation/hr-subgraph",
+        "services/federation/employment-subgraph",
+        "services/federation/security-subgraph",
+        "services/cdc/hr-cdc-service",
+        "services/cdc/employment-cdc-service",
+        "services/cdc/security-cdc-service",
+        "services/cdc/projection-consumer",
+        "services/cdc/query-service"
     )
 
     $failed = @()
