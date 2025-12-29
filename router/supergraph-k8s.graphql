@@ -1,0 +1,208 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+{
+  query: Query
+  mutation: Mutation
+}
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+"""Scalar for BigDecimal"""
+scalar BigDecimal
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: CATEGORIES_QUERY)
+  @join__type(graph: PRODUCTS_MUTATION)
+  @join__type(graph: PRODUCTS_QUERY)
+
+"""Scalar for BigInteger"""
+scalar BigInteger
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: CATEGORIES_QUERY)
+  @join__type(graph: PRODUCTS_MUTATION)
+  @join__type(graph: PRODUCTS_QUERY)
+
+"""A product category that can be mutated"""
+type Category
+  @join__type(graph: CATEGORIES_MUTATION, key: "id")
+  @join__type(graph: CATEGORIES_QUERY, key: "id")
+{
+  """Optional description of the category"""
+  description: String
+
+  """Unique identifier for the category"""
+  id: ID
+
+  """Category name"""
+  name: String
+}
+
+"""Input for creating or updating a category"""
+input CategoryInput
+  @join__type(graph: CATEGORIES_MUTATION)
+{
+  """Category name"""
+  name: String
+
+  """Optional category description"""
+  description: String
+}
+
+"""Scalar for Import"""
+scalar Import
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: CATEGORIES_QUERY)
+  @join__type(graph: PRODUCTS_MUTATION)
+  @join__type(graph: PRODUCTS_QUERY)
+
+scalar join__FieldSet
+
+enum join__Graph {
+  CATEGORIES_MUTATION @join__graph(name: "categories-mutation", url: "http://categories-mutation:8080/graphql")
+  CATEGORIES_QUERY @join__graph(name: "categories-query", url: "http://categories-query:8080/graphql")
+  PRODUCTS_MUTATION @join__graph(name: "products-mutation", url: "http://products-mutation:8080/graphql")
+  PRODUCTS_QUERY @join__graph(name: "products-query", url: "http://products-query:8080/graphql")
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+"""Mutation root"""
+type Mutation
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: PRODUCTS_MUTATION)
+{
+  """Create a new category"""
+  createCategory(input: CategoryInput!): Category @join__field(graph: CATEGORIES_MUTATION)
+
+  """Update an existing category"""
+  updateCategory(id: String!, input: CategoryInput!): Category @join__field(graph: CATEGORIES_MUTATION)
+
+  """Delete a category by ID"""
+  deleteCategory(id: String!): Boolean @join__field(graph: CATEGORIES_MUTATION)
+
+  """Create a new product"""
+  createProduct(input: CreateProductInput!): Product @join__field(graph: PRODUCTS_MUTATION)
+
+  """Update an existing product"""
+  updateProduct(id: String!, input: CreateProductInput!): Product @join__field(graph: PRODUCTS_MUTATION)
+
+  """Delete a product by ID"""
+  deleteProduct(id: String!): Boolean @join__field(graph: PRODUCTS_MUTATION)
+}
+
+"""Scalar for Policy"""
+scalar Policy
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: CATEGORIES_QUERY)
+  @join__type(graph: PRODUCTS_MUTATION)
+  @join__type(graph: PRODUCTS_QUERY)
+
+"""Product extended with category information"""
+type Product
+  @join__type(graph: CATEGORIES_QUERY, key: "id", extension: true)
+  @join__type(graph: PRODUCTS_MUTATION, key: "id")
+  @join__type(graph: PRODUCTS_QUERY, key: "id")
+{
+  """The category this product belongs to"""
+  category: Category @join__field(graph: CATEGORIES_QUERY, requires: "categoryId")
+
+  """Category ID (resolved by Categories subgraph)"""
+  categoryId: String @join__field(graph: CATEGORIES_QUERY, external: true) @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+
+  """Unique identifier for the product"""
+  id: ID
+
+  """Optional product description"""
+  description: String @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+
+  """Product name"""
+  name: String @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+
+  """Product price"""
+  price: BigDecimal @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+}
+
+"""Input for creating or updating a product"""
+input CreateProductInput
+  @join__type(graph: PRODUCTS_MUTATION)
+{
+  """Product name"""
+  name: String
+
+  """Optional product description"""
+  description: String
+
+  """Product price"""
+  price: BigDecimal
+
+  """Category ID for the product"""
+  categoryId: String
+}
+
+enum Purpose
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: CATEGORIES_QUERY)
+  @join__type(graph: PRODUCTS_MUTATION)
+  @join__type(graph: PRODUCTS_QUERY)
+{
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION @join__enumValue(graph: CATEGORIES_MUTATION) @join__enumValue(graph: CATEGORIES_QUERY) @join__enumValue(graph: PRODUCTS_MUTATION) @join__enumValue(graph: PRODUCTS_QUERY)
+
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY @join__enumValue(graph: CATEGORIES_MUTATION) @join__enumValue(graph: CATEGORIES_QUERY) @join__enumValue(graph: PRODUCTS_MUTATION) @join__enumValue(graph: PRODUCTS_QUERY)
+}
+
+"""Query root - required by federation even if empty"""
+type Query
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: CATEGORIES_QUERY)
+  @join__type(graph: PRODUCTS_MUTATION)
+  @join__type(graph: PRODUCTS_QUERY)
+{
+  """Get all categories"""
+  categories: [Category] @join__field(graph: CATEGORIES_QUERY)
+
+  """Get a category by ID"""
+  category(id: String): Category @join__field(graph: CATEGORIES_QUERY)
+
+  """Get a product by ID"""
+  product(id: String): Product @join__field(graph: PRODUCTS_QUERY)
+
+  """Get all products"""
+  products: [Product] @join__field(graph: PRODUCTS_QUERY)
+}
+
+"""Scalar for Scope"""
+scalar Scope
+  @join__type(graph: CATEGORIES_MUTATION)
+  @join__type(graph: CATEGORIES_QUERY)
+  @join__type(graph: PRODUCTS_MUTATION)
+  @join__type(graph: PRODUCTS_QUERY)

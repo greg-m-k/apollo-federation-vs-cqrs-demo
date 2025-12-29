@@ -1,0 +1,102 @@
+services:
+  # PostgreSQL Database (shared)
+  postgres:
+    image: postgres:16-alpine
+    container_name: apollo-demo-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: apollodemo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Products Subgraph (Quarkus)
+  products:
+    build:
+      context: ./products-subgraph
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: products-subgraph
+    ports:
+      - "8081:8080"
+    environment:
+      - QUARKUS_HTTP_HOST=0.0.0.0
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=apollodemo
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/q/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Categories Subgraph (Quarkus)
+  categories:
+    build:
+      context: ./categories-subgraph
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: categories-subgraph
+    ports:
+      - "8082:8080"
+    environment:
+      - QUARKUS_HTTP_HOST=0.0.0.0
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=apollodemo
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/q/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Apollo Router (Federation Gateway)
+  router:
+    image: ghcr.io/apollographql/router:v2.0.0
+    container_name: apollo-router
+    ports:
+      - "4000:4000"
+      - "8088:8088"
+    volumes:
+      - ./router/router.yaml:/dist/config/router.yaml
+      - ./router/supergraph.graphql:/dist/config/supergraph.graphql
+    command:
+      - --config
+      - /dist/config/router.yaml
+      - --supergraph
+      - /dist/config/supergraph.graphql
+      - --dev
+    depends_on:
+      products:
+        condition: service_healthy
+      categories:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -1,6 +1,71 @@
-# Claude Code Rules
+﻿# CLAUDE.md
 
-This file is generated during init for the selected agent.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+This is a SpecKit Plus template repository implementing Spec-Driven Development (SDD). The project contains no application code yet - it provides SDD workflow tooling, templates, and scripts for building new features.
+
+## SDD Workflow Commands
+
+Run these slash commands in sequence to develop features:
+
+| Command | Purpose | Output |
+|---------|---------|--------|
+| `/sp.specify <description>` | Create feature spec from natural language | `specs/<n>-<name>/spec.md` |
+| `/sp.clarify` | Identify gaps in current spec | Updated spec with clarifications |
+| `/sp.plan` | Generate technical plan + research | `plan.md`, `research.md`, `data-model.md`, `contracts/` |
+| `/sp.tasks` | Break plan into actionable tasks | `tasks.md` with checkboxes |
+| `/sp.implement` | Execute tasks from tasks.md | Implementation code |
+| `/sp.analyze` | Cross-artifact consistency check | Validation report |
+| `/sp.adr <title>` | Document architectural decision | `history/adr/<id>-<slug>.md` |
+| `/sp.constitution` | Create/update project principles | `.specify/memory/constitution.md` |
+| `/sp.git.commit_pr` | Commit work and create PR | Git commit + PR |
+
+## Key Scripts (PowerShell)
+
+```powershell
+# Feature setup
+.\.specify\scripts\powershell\create-new-feature.ps1 -Json "<description>"
+
+# Plan setup
+.\.specify\scripts\powershell\setup-plan.ps1 -Json
+
+# Check prerequisites before tasks
+.\.specify\scripts\powershell\check-prerequisites.ps1 -Json
+
+# Update agent context after planning
+.\.specify\scripts\powershell\update-agent-context.ps1 -AgentType claude
+```
+
+## Project Structure
+
+```
+.specify/
+├── memory/constitution.md    # Project principles (unfilled template)
+├── templates/                # Spec, plan, tasks, ADR, PHR templates
+└── scripts/powershell/       # Workflow automation scripts
+
+.claude/commands/             # Skill definitions for slash commands
+
+specs/<n>-<feature>/          # Feature artifacts (created per feature)
+├── spec.md                   # Requirements (WHAT, not HOW)
+├── plan.md                   # Technical approach
+├── tasks.md                  # Implementation checklist
+├── research.md               # Technical decisions
+├── data-model.md             # Entity definitions
+├── contracts/                # API specifications
+└── checklists/               # Quality validation
+
+history/
+├── prompts/                  # Prompt History Records (PHR)
+│   ├── constitution/
+│   ├── <feature-name>/
+│   └── general/
+└── adr/                      # Architecture Decision Records
+```
+
+## SDD Development Guidelines
 
 You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architext to build products.
 

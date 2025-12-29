@@ -1,0 +1,88 @@
+# Security Subgraph Schema - BadgeHolder entity
+# Extends Person with security badge information
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@external", "@extends"])
+
+type Query {
+  """Get all badge holders"""
+  badgeHolders: [BadgeHolder!]!
+
+  """Get a badge holder by ID"""
+  badgeHolder(id: ID!): BadgeHolder
+
+  """Get a badge holder by person ID"""
+  badgeHolderByPersonId(personId: ID!): BadgeHolder
+
+  """Get a badge holder by badge number"""
+  badgeHolderByBadgeNumber(badgeNumber: String!): BadgeHolder
+
+  """Get badge holders by access level"""
+  badgeHoldersByAccessLevel(accessLevel: AccessLevel!): [BadgeHolder!]!
+
+  """Get all active badge holders"""
+  activeBadgeHolders: [BadgeHolder!]!
+}
+
+type Mutation {
+  """Provision a badge for a person"""
+  provisionBadge(personId: ID!, accessLevel: AccessLevel!, clearance: Clearance!): BadgeHolder
+
+  """Change a badge holder's access level"""
+  changeAccessLevel(id: ID!, newAccessLevel: AccessLevel!): BadgeHolder
+
+  """Change a badge holder's clearance level"""
+  changeClearance(id: ID!, newClearance: Clearance!): BadgeHolder
+
+  """Revoke a badge (mark as inactive)"""
+  revokeBadge(id: ID!): BadgeHolder
+}
+
+"""A badge holder record in the Security system"""
+type BadgeHolder @key(fields: "id") {
+  """Unique identifier for the badge holder record"""
+  id: ID!
+
+  """Reference to the Person in HR system"""
+  personId: ID!
+
+  """Physical badge number"""
+  badgeNumber: String!
+
+  """Building access level"""
+  accessLevel: AccessLevel!
+
+  """Security clearance level"""
+  clearance: Clearance!
+
+  """Whether the badge is currently active"""
+  active: Boolean!
+}
+
+"""Person extended with security badge information"""
+type Person @key(fields: "id") @extends {
+  id: ID! @external
+
+  """The badge holder record for this person (if they have a badge)"""
+  badge: BadgeHolder
+}
+
+"""Building access levels"""
+enum AccessLevel {
+  """Lobby only"""
+  VISITOR
+  """Normal employee areas"""
+  STANDARD
+  """Secure areas"""
+  RESTRICTED
+  """Full building access"""
+  ALL_ACCESS
+}
+
+"""Security clearance levels"""
+enum Clearance {
+  NONE
+  CONFIDENTIAL
+  SECRET
+  TOP_SECRET
+}

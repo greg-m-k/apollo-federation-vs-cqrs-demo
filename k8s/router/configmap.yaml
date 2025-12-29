@@ -1,0 +1,187 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: router-config
+  namespace: apollo-demo
+data:
+  router.yaml: |
+    # Apollo Router Configuration for Kubernetes
+    supergraph:
+      introspection: true
+      listen: 0.0.0.0:4000
+
+    # Enable GraphQL Sandbox UI (disable homepage first)
+    homepage:
+      enabled: false
+    sandbox:
+      enabled: true
+
+    # Health checks
+    health_check:
+      listen: 0.0.0.0:8088
+      enabled: true
+
+    # CORS for browser access
+    cors:
+      allow_any_origin: true
+
+    # Subgraph routing headers
+    headers:
+      all:
+        request:
+          - propagate:
+              matching: ".*"
+
+    # Telemetry with Prometheus metrics (basic config without licensed features)
+    telemetry:
+      exporters:
+        logging:
+          stdout:
+            enabled: true
+            format: text
+        metrics:
+          prometheus:
+            enabled: true
+            listen: 0.0.0.0:9090
+            path: /metrics
+
+  supergraph.graphql: |
+    schema
+      @link(url: "https://specs.apollo.dev/link/v1.0")
+      @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+    {
+      query: Query
+      mutation: Mutation
+    }
+
+    directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+    directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+    directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+    directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+    directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+    scalar BigDecimal
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: CATEGORIES_QUERY)
+      @join__type(graph: PRODUCTS_MUTATION)
+      @join__type(graph: PRODUCTS_QUERY)
+
+    scalar BigInteger
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: CATEGORIES_QUERY)
+      @join__type(graph: PRODUCTS_MUTATION)
+      @join__type(graph: PRODUCTS_QUERY)
+
+    type Category
+      @join__type(graph: CATEGORIES_MUTATION, key: "id")
+      @join__type(graph: CATEGORIES_QUERY, key: "id")
+    {
+      description: String
+      id: ID
+      name: String
+    }
+
+    input CategoryInput
+      @join__type(graph: CATEGORIES_MUTATION)
+    {
+      name: String
+      description: String
+    }
+
+    scalar Import
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: CATEGORIES_QUERY)
+      @join__type(graph: PRODUCTS_MUTATION)
+      @join__type(graph: PRODUCTS_QUERY)
+
+    scalar join__FieldSet
+
+    enum join__Graph {
+      CATEGORIES_MUTATION @join__graph(name: "categories-mutation", url: "http://categories-mutation:8080/graphql")
+      CATEGORIES_QUERY @join__graph(name: "categories-query", url: "http://categories-query:8080/graphql")
+      PRODUCTS_MUTATION @join__graph(name: "products-mutation", url: "http://products-mutation:8080/graphql")
+      PRODUCTS_QUERY @join__graph(name: "products-query", url: "http://products-query:8080/graphql")
+    }
+
+    scalar link__Import
+
+    enum link__Purpose {
+      SECURITY
+      EXECUTION
+    }
+
+    type Mutation
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: PRODUCTS_MUTATION)
+    {
+      createCategory(input: CategoryInput!): Category @join__field(graph: CATEGORIES_MUTATION)
+      updateCategory(id: String!, input: CategoryInput!): Category @join__field(graph: CATEGORIES_MUTATION)
+      deleteCategory(id: String!): Boolean @join__field(graph: CATEGORIES_MUTATION)
+      createProduct(input: CreateProductInput!): Product @join__field(graph: PRODUCTS_MUTATION)
+      updateProduct(id: String!, input: CreateProductInput!): Product @join__field(graph: PRODUCTS_MUTATION)
+      deleteProduct(id: String!): Boolean @join__field(graph: PRODUCTS_MUTATION)
+    }
+
+    scalar Policy
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: CATEGORIES_QUERY)
+      @join__type(graph: PRODUCTS_MUTATION)
+      @join__type(graph: PRODUCTS_QUERY)
+
+    type Product
+      @join__type(graph: CATEGORIES_QUERY, key: "id", extension: true)
+      @join__type(graph: PRODUCTS_MUTATION, key: "id")
+      @join__type(graph: PRODUCTS_QUERY, key: "id")
+    {
+      category: Category @join__field(graph: CATEGORIES_QUERY, requires: "categoryId")
+      categoryId: String @join__field(graph: CATEGORIES_QUERY, external: true) @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+      id: ID
+      description: String @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+      name: String @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+      price: BigDecimal @join__field(graph: PRODUCTS_MUTATION) @join__field(graph: PRODUCTS_QUERY)
+    }
+
+    input CreateProductInput
+      @join__type(graph: PRODUCTS_MUTATION)
+    {
+      name: String
+      description: String
+      price: BigDecimal
+      categoryId: String
+    }
+
+    enum Purpose
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: CATEGORIES_QUERY)
+      @join__type(graph: PRODUCTS_MUTATION)
+      @join__type(graph: PRODUCTS_QUERY)
+    {
+      EXECUTION @join__enumValue(graph: CATEGORIES_MUTATION) @join__enumValue(graph: CATEGORIES_QUERY) @join__enumValue(graph: PRODUCTS_MUTATION) @join__enumValue(graph: PRODUCTS_QUERY)
+      SECURITY @join__enumValue(graph: CATEGORIES_MUTATION) @join__enumValue(graph: CATEGORIES_QUERY) @join__enumValue(graph: PRODUCTS_MUTATION) @join__enumValue(graph: PRODUCTS_QUERY)
+    }
+
+    type Query
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: CATEGORIES_QUERY)
+      @join__type(graph: PRODUCTS_MUTATION)
+      @join__type(graph: PRODUCTS_QUERY)
+    {
+      categories: [Category] @join__field(graph: CATEGORIES_QUERY)
+      category(id: String): Category @join__field(graph: CATEGORIES_QUERY)
+      product(id: String): Product @join__field(graph: PRODUCTS_QUERY)
+      products: [Product] @join__field(graph: PRODUCTS_QUERY)
+    }
+
+    scalar Scope
+      @join__type(graph: CATEGORIES_MUTATION)
+      @join__type(graph: CATEGORIES_QUERY)
+      @join__type(graph: PRODUCTS_MUTATION)
+      @join__type(graph: PRODUCTS_QUERY)

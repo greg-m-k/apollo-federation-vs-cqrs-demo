@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - federation/postgres.yaml
+  - federation/hr-subgraph.yaml
+  - federation/employment-subgraph.yaml
+  - federation/security-subgraph.yaml
+  - federation/router.yaml
+  - cdc/postgres.yaml
+  - cdc/kafka.yaml
+  - cdc/cdc-query-service.yaml

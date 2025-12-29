@@ -1,0 +1,23 @@
+# Supergraph composition config for Kubernetes deployment
+# Uses all 4 subgraphs for query/mutation separation
+# The routing_url uses K8s service names for pod-to-pod communication
+
+federation_version: =2.11.0
+
+subgraphs:
+  products-query:
+    routing_url: http://products-query:8080/graphql
+    schema:
+      file: ./schemas/products-fixed.graphql
+  products-mutation:
+    routing_url: http://products-mutation:8080/graphql
+    schema:
+      file: ./schemas/products-mutation.graphql
+  categories-query:
+    routing_url: http://categories-query:8080/graphql
+    schema:
+      file: ./schemas/categories-fixed.graphql
+  categories-mutation:
+    routing_url: http://categories-mutation:8080/graphql
+    schema:
+      file: ./schemas/categories-mutation.graphql

@@ -1,0 +1,136 @@
+# Supergraph Schema for Federation Demo
+# This file is composed from subgraph schemas
+# In production, use: rover supergraph compose --config supergraph.yaml
+
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+{
+  query: Query
+  mutation: Mutation
+}
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+scalar BigDecimal @join__type(graph: EMPLOYMENT)
+scalar Date @join__type(graph: HR)
+scalar join__FieldSet
+scalar link__Import
+
+enum AccessLevel @join__type(graph: SECURITY) {
+  VISITOR @join__enumValue(graph: SECURITY)
+  STANDARD @join__enumValue(graph: SECURITY)
+  RESTRICTED @join__enumValue(graph: SECURITY)
+  ALL_ACCESS @join__enumValue(graph: SECURITY)
+}
+
+enum Clearance @join__type(graph: SECURITY) {
+  NONE @join__enumValue(graph: SECURITY)
+  CONFIDENTIAL @join__enumValue(graph: SECURITY)
+  SECRET @join__enumValue(graph: SECURITY)
+  TOP_SECRET @join__enumValue(graph: SECURITY)
+}
+
+enum join__Graph {
+  HR @join__graph(name: "hr", url: "http://hr-subgraph:8080/graphql")
+  EMPLOYMENT @join__graph(name: "employment", url: "http://employment-subgraph:8080/graphql")
+  SECURITY @join__graph(name: "security", url: "http://security-subgraph:8080/graphql")
+}
+
+enum link__Purpose {
+  SECURITY
+  EXECUTION
+}
+
+type BadgeHolder
+  @join__type(graph: SECURITY, key: "id")
+{
+  id: ID!
+  personId: ID!
+  badgeNumber: String!
+  accessLevel: AccessLevel!
+  clearance: Clearance!
+  active: Boolean!
+}
+
+type Employee
+  @join__type(graph: EMPLOYMENT, key: "id")
+{
+  id: ID!
+  personId: ID!
+  title: String!
+  department: String!
+  salary: BigDecimal!
+  active: Boolean!
+}
+
+type Person
+  @join__type(graph: HR, key: "id")
+  @join__type(graph: EMPLOYMENT, key: "id", extension: true)
+  @join__type(graph: SECURITY, key: "id", extension: true)
+{
+  id: ID!
+  name: String! @join__field(graph: HR)
+  email: String! @join__field(graph: HR)
+  hireDate: Date @join__field(graph: HR)
+  active: Boolean! @join__field(graph: HR)
+  employee: Employee @join__field(graph: EMPLOYMENT)
+  badge: BadgeHolder @join__field(graph: SECURITY)
+}
+
+type Query
+  @join__type(graph: HR)
+  @join__type(graph: EMPLOYMENT)
+  @join__type(graph: SECURITY)
+{
+  # HR Subgraph
+  persons: [Person!]! @join__field(graph: HR)
+  person(id: ID!): Person @join__field(graph: HR)
+  personByEmail(email: String!): Person @join__field(graph: HR)
+  activePersons: [Person!]! @join__field(graph: HR)
+  searchPersons(name: String!): [Person!]! @join__field(graph: HR)
+
+  # Employment Subgraph
+  employees: [Employee!]! @join__field(graph: EMPLOYMENT)
+  employee(id: ID!): Employee @join__field(graph: EMPLOYMENT)
+  employeeByPersonId(personId: ID!): Employee @join__field(graph: EMPLOYMENT)
+  employeesByDepartment(department: String!): [Employee!]! @join__field(graph: EMPLOYMENT)
+  activeEmployees: [Employee!]! @join__field(graph: EMPLOYMENT)
+
+  # Security Subgraph
+  badgeHolders: [BadgeHolder!]! @join__field(graph: SECURITY)
+  badgeHolder(id: ID!): BadgeHolder @join__field(graph: SECURITY)
+  badgeHolderByPersonId(personId: ID!): BadgeHolder @join__field(graph: SECURITY)
+  badgeHolderByBadgeNumber(badgeNumber: String!): BadgeHolder @join__field(graph: SECURITY)
+  badgeHoldersByAccessLevel(accessLevel: AccessLevel!): [BadgeHolder!]! @join__field(graph: SECURITY)
+  activeBadgeHolders: [BadgeHolder!]! @join__field(graph: SECURITY)
+}
+
+type Mutation
+  @join__type(graph: HR)
+  @join__type(graph: EMPLOYMENT)
+  @join__type(graph: SECURITY)
+{
+  # HR Subgraph
+  createPerson(name: String!, email: String!, hireDate: Date): Person! @join__field(graph: HR)
+  updatePerson(id: ID!, name: String, email: String): Person @join__field(graph: HR)
+  terminatePerson(id: ID!): Person @join__field(graph: HR)
+
+  # Employment Subgraph
+  assignEmployee(personId: ID!, title: String!, department: String!, salary: BigDecimal!): Employee @join__field(graph: EMPLOYMENT)
+  promoteEmployee(id: ID!, newTitle: String, newSalary: BigDecimal): Employee @join__field(graph: EMPLOYMENT)
+  transferEmployee(id: ID!, newDepartment: String!): Employee @join__field(graph: EMPLOYMENT)
+  terminateEmployee(id: ID!): Employee @join__field(graph: EMPLOYMENT)
+
+  # Security Subgraph
+  provisionBadge(personId: ID!, accessLevel: AccessLevel!, clearance: Clearance!): BadgeHolder @join__field(graph: SECURITY)
+  changeAccessLevel(id: ID!, newAccessLevel: AccessLevel!): BadgeHolder @join__field(graph: SECURITY)
+  changeClearance(id: ID!, newClearance: Clearance!): BadgeHolder @join__field(graph: SECURITY)
+  revokeBadge(id: ID!): BadgeHolder @join__field(graph: SECURITY)
+}

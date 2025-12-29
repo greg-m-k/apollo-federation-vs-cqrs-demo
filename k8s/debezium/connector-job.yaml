@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: register-debezium-connector
+  namespace: apollo-demo
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: register-connector
+          image: curlimages/curl:8.5.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Debezium Connect to be ready..."
+              until curl -s http://debezium:8083/connectors > /dev/null 2>&1; do
+                echo "Debezium not ready, waiting..."
+                sleep 5
+              done
+              echo "Debezium is ready!"
+
+              echo "Checking if connector already exists..."
+              if curl -s http://debezium:8083/connectors/apollo-demo-connector > /dev/null 2>&1; then
+                echo "Connector already exists, deleting..."
+                curl -X DELETE http://debezium:8083/connectors/apollo-demo-connector
+                sleep 2
+              fi
+
+              echo "Registering PostgreSQL connector..."
+              curl -X POST http://debezium:8083/connectors \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "name": "apollo-demo-connector",
+                  "config": {
+                    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+                    "database.hostname": "postgres",
+                    "database.port": "5432",
+                    "database.user": "postgres",
+                    "database.password": "postgres123",
+                    "database.dbname": "apollodemo",
+                    "topic.prefix": "dbz",
+                    "table.include.list": "public.products,public.categories",
+                    "plugin.name": "pgoutput",
+                    "slot.name": "debezium_slot",
+                    "publication.name": "dbz_publication",
+                    "publication.autocreate.mode": "filtered",
+                    "snapshot.mode": "initial",
+                    "transforms": "unwrap",
+                    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+                    "transforms.unwrap.drop.tombstones": "false",
+                    "transforms.unwrap.delete.handling.mode": "rewrite",
+                    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+                    "key.converter.schemas.enable": "false",
+                    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+                    "value.converter.schemas.enable": "false"
+                  }
+                }'
+
+              echo ""
+              echo "Waiting for connector to start..."
+              sleep 5
+
+              echo "Connector status:"
+              curl -s http://debezium:8083/connectors/apollo-demo-connector/status | head -200
+
+              echo ""
+              echo "Connector registration complete!"

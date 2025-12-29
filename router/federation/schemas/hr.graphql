@@ -1,0 +1,53 @@
+# HR Subgraph Schema - Person entity
+# This subgraph owns the canonical Person identity
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable"])
+
+type Query {
+  """Get all persons"""
+  persons: [Person!]!
+
+  """Get a person by ID"""
+  person(id: ID!): Person
+
+  """Get a person by email"""
+  personByEmail(email: String!): Person
+
+  """Get all active persons"""
+  activePersons: [Person!]!
+
+  """Search persons by name"""
+  searchPersons(name: String!): [Person!]!
+}
+
+type Mutation {
+  """Create a new person"""
+  createPerson(name: String!, email: String!, hireDate: Date): Person!
+
+  """Update an existing person"""
+  updatePerson(id: ID!, name: String, email: String): Person
+
+  """Mark a person as terminated (inactive)"""
+  terminatePerson(id: ID!): Person
+}
+
+"""A person in the HR system - the canonical source of identity"""
+type Person @key(fields: "id") {
+  """Unique identifier for the person"""
+  id: ID!
+
+  """Person's full name"""
+  name: String!
+
+  """Person's email address"""
+  email: String!
+
+  """Date the person was hired"""
+  hireDate: Date
+
+  """Whether the person is currently active"""
+  active: Boolean!
+}
+
+scalar Date

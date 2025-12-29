@@ -1,0 +1,68 @@
+# Kind cluster configuration for Apollo-Demo local development
+# Creates a single-node cluster with port mappings for all services
+#
+# Usage: kind create cluster --config tilt/kind-cluster.yaml
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: apollo-demo
+
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Apollo Router (Federation GraphQL endpoint)
+      - containerPort: 30400
+        hostPort: 4000
+        protocol: TCP
+      # Router health check
+      - containerPort: 30088
+        hostPort: 8088
+        protocol: TCP
+      # CDC Query Service
+      - containerPort: 30090
+        hostPort: 8090
+        protocol: TCP
+      # Dashboard
+      - containerPort: 30300
+        hostPort: 3000
+        protocol: TCP
+      # Federation subgraphs (for debugging)
+      - containerPort: 30091
+        hostPort: 8091
+        protocol: TCP
+      - containerPort: 30092
+        hostPort: 8092
+        protocol: TCP
+      - containerPort: 30093
+        hostPort: 8093
+        protocol: TCP
+      # CDC services (for debugging)
+      - containerPort: 30084
+        hostPort: 8084
+        protocol: TCP
+      - containerPort: 30085
+        hostPort: 8085
+        protocol: TCP
+      - containerPort: 30086
+        hostPort: 8086
+        protocol: TCP
+      # PostgreSQL (Federation)
+      - containerPort: 30434
+        hostPort: 5434
+        protocol: TCP
+      # PostgreSQL (CDC)
+      - containerPort: 30433
+        hostPort: 5433
+        protocol: TCP
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+
+# Container runtime config for local image loading
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"

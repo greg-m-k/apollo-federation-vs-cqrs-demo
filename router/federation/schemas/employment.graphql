@@ -1,0 +1,67 @@
+# Employment Subgraph Schema - Employee entity
+# Extends Person with employment information
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@external", "@extends"])
+
+type Query {
+  """Get all employees"""
+  employees: [Employee!]!
+
+  """Get an employee by ID"""
+  employee(id: ID!): Employee
+
+  """Get an employee by person ID"""
+  employeeByPersonId(personId: ID!): Employee
+
+  """Get employees by department"""
+  employeesByDepartment(department: String!): [Employee!]!
+
+  """Get all active employees"""
+  activeEmployees: [Employee!]!
+}
+
+type Mutation {
+  """Create an employee record for a person"""
+  assignEmployee(personId: ID!, title: String!, department: String!, salary: BigDecimal!): Employee
+
+  """Promote an employee to a new title and/or salary"""
+  promoteEmployee(id: ID!, newTitle: String, newSalary: BigDecimal): Employee
+
+  """Transfer an employee to a new department"""
+  transferEmployee(id: ID!, newDepartment: String!): Employee
+
+  """Mark an employee as terminated (inactive)"""
+  terminateEmployee(id: ID!): Employee
+}
+
+"""An employee record in the Employment system"""
+type Employee @key(fields: "id") {
+  """Unique identifier for the employee record"""
+  id: ID!
+
+  """Reference to the Person in HR system"""
+  personId: ID!
+
+  """Job title"""
+  title: String!
+
+  """Department name"""
+  department: String!
+
+  """Annual salary"""
+  salary: BigDecimal!
+
+  """Whether the employee is currently active"""
+  active: Boolean!
+}
+
+"""Person extended with employment information"""
+type Person @key(fields: "id") @extends {
+  id: ID! @external
+
+  """The employee record for this person (if they are an employee)"""
+  employee: Employee
+}
+
+scalar BigDecimal

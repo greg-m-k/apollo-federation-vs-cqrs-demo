@@ -1,0 +1,4 @@
+{
+  "query": "query GetPerson($id: ID!) { person(id: $id) { id name email } }",
+  "variables": { "id": "person-001" }
+}

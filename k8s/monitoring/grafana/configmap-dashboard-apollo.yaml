@@ -1,0 +1,198 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-apollo
+  namespace: apollo-demo
+data:
+  apollo-federation.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "gridPos": {"h": 2, "w": 24, "x": 0, "y": 0},
+          "id": 1,
+          "options": {
+            "code": {"language": "plaintext", "showLineNumbers": false, "showMiniMap": false},
+            "content": "# Apollo Federation - Query/Mutation Pod Separation\nThis dashboard shows metrics from the Apollo Router and Quarkus subgraphs.",
+            "mode": "markdown"
+          },
+          "title": "",
+          "type": "text"
+        },
+        {
+          "gridPos": {"h": 6, "w": 6, "x": 0, "y": 2},
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count{app=~\"products-query|categories-query\"}[5m]))",
+              "legendFormat": "Query RPS",
+              "refId": "A"
+            }
+          ],
+          "title": "Query Pods - RPS",
+          "type": "stat"
+        },
+        {
+          "gridPos": {"h": 6, "w": 6, "x": 6, "y": 2},
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count{app=~\"products-mutation|categories-mutation\"}[5m]))",
+              "legendFormat": "Mutation RPS",
+              "refId": "A"
+            }
+          ],
+          "title": "Mutation Pods - RPS",
+          "type": "stat"
+        },
+        {
+          "gridPos": {"h": 6, "w": 6, "x": 12, "y": 2},
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "expr": "count(up{app=~\"products-query|categories-query\"} == 1)",
+              "legendFormat": "Query Pods",
+              "refId": "A"
+            }
+          ],
+          "title": "Query Pods - Up",
+          "type": "stat"
+        },
+        {
+          "gridPos": {"h": 6, "w": 6, "x": 18, "y": 2},
+          "id": 5,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "expr": "count(up{app=~\"products-mutation|categories-mutation\"} == 1)",
+              "legendFormat": "Mutation Pods",
+              "refId": "A"
+            }
+          ],
+          "title": "Mutation Pods - Up",
+          "type": "stat"
+        },
+        {
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "id": 6,
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum by (app) (rate(http_server_requests_seconds_count[5m]))",
+              "legendFormat": "{{app}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Request Rate by Subgraph",
+          "type": "timeseries"
+        },
+        {
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "id": 7,
+          "fieldConfig": {
+            "defaults": {"unit": "s"}
+          },
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (app, le) (rate(http_server_requests_seconds_bucket[5m])))",
+              "legendFormat": "{{app}} p95",
+              "refId": "A"
+            }
+          ],
+          "title": "Response Time p95 by Subgraph",
+          "type": "timeseries"
+        },
+        {
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+          "id": 8,
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum by (operation_type) (rate(http_server_requests_seconds_count[5m]))",
+              "legendFormat": "{{operation_type}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Request Rate by Operation Type (Query vs Mutation)",
+          "type": "timeseries"
+        },
+        {
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+          "id": 9,
+          "fieldConfig": {
+            "defaults": {"unit": "bytes"}
+          },
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum by (app) (jvm_memory_used_bytes{area=\"heap\"})",
+              "legendFormat": "{{app}}",
+              "refId": "A"
+            }
+          ],
+          "title": "JVM Heap Memory by Subgraph",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["apollo", "graphql", "federation"],
+      "templating": {"list": []},
+      "time": {"from": "now-15m", "to": "now"},
+      "title": "Apollo Federation - Query/Mutation Separation",
+      "uid": "apollo-federation",
+      "version": 1
+    }

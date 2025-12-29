@@ -1,0 +1,15 @@
+# Supergraph composition config for rover
+# Uses fixed local schema files to work around SmallRye FieldSet issue
+# The routing_url uses Docker internal names for container-to-container communication
+
+federation_version: =2.11.0
+
+subgraphs:
+  products:
+    routing_url: http://products:8080/graphql
+    schema:
+      file: ./schemas/products-fixed.graphql
+  categories:
+    routing_url: http://categories:8080/graphql
+    schema:
+      file: ./schemas/categories-fixed.graphql

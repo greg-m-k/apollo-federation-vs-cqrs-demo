@@ -1,0 +1,22 @@
+# Supergraph configuration for local composition
+# Used to introspect subgraphs via port-forwarding
+
+federation_version: =2.9.0
+
+subgraphs:
+  products-query:
+    routing_url: http://products-query:8080/graphql
+    schema:
+      subgraph_url: http://localhost:9092/graphql
+  products-mutation:
+    routing_url: http://products-mutation:8080/graphql
+    schema:
+      subgraph_url: http://localhost:9091/graphql
+  categories-query:
+    routing_url: http://categories-query:8080/graphql
+    schema:
+      subgraph_url: http://localhost:9094/graphql
+  categories-mutation:
+    routing_url: http://categories-mutation:8080/graphql
+    schema:
+      subgraph_url: http://localhost:9093/graphql

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apollo-demo
+  labels:
+    app.kubernetes.io/name: apollo-demo
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: federation-demo
+  labels:
+    app.kubernetes.io/name: federation-demo
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cdc-demo
+  labels:
+    app.kubernetes.io/name: cdc-demo

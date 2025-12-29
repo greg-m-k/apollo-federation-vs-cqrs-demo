@@ -1,0 +1,41 @@
+# Docker ignore file for Quarkus GraphQL Demo
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Build artifacts
+target/
+build/
+
+# Maven wrapper JAR (downloaded during build)
+.mvn/wrapper/maven-wrapper.jar
+
+# Documentation (not needed in container)
+*.md
+!README.md
+specs/
+history/
+.specify/
+.claude/
+
+# Docker files (prevent recursive copy)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Environment and secrets
+.env*
+*.env
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

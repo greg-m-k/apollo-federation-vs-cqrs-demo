@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-dashboard
+  namespace: apollo-demo
+  labels:
+    app: demo-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-dashboard
+  template:
+    metadata:
+      labels:
+        app: demo-dashboard
+    spec:
+      containers:
+        - name: demo-dashboard
+          image: demo-dashboard:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10

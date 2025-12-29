@@ -1,0 +1,270 @@
+# Docker Compose for Federation vs CDC Architecture Comparison Demo
+# Run with: docker-compose -f docker-compose.comparison.yml up
+
+services:
+  # =============================================================================
+  # SHARED INFRASTRUCTURE
+  # =============================================================================
+
+  # PostgreSQL for Federation subgraphs
+  postgres-federation:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_MULTIPLE_DATABASES: hr_db,employment_db,security_db
+    volumes:
+      - ./scripts/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - postgres-federation-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for CDC services and projections
+  postgres-cdc:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_MULTIPLE_DATABASES: hr_cdc_db,employment_cdc_db,security_cdc_db,projections_db
+    volumes:
+      - ./scripts/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - postgres-cdc-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Kafka (KRaft mode - no Zookeeper)
+  kafka:
+    image: apache/kafka:3.7.0
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # Kafka init - creates required internal topics
+  kafka-init:
+    image: apache/kafka:3.7.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Creating Kafka topics..."
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic __consumer_offsets --partitions 50 --replication-factor 1 --config cleanup.policy=compact
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic cdc.hr.person --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic cdc.employment.employee --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic cdc.security.badge --partitions 1 --replication-factor 1
+        echo "Kafka topics created successfully"
+    restart: "no"
+
+  # =============================================================================
+  # FEDERATION ARCHITECTURE (GraphQL)
+  # =============================================================================
+
+  hr-subgraph:
+    build:
+      context: ./hr-subgraph
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-federation
+      DB_PORT: 5432
+      DB_NAME: hr_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+    ports:
+      - "8091:8080"
+    depends_on:
+      postgres-federation:
+        condition: service_healthy
+
+  employment-subgraph:
+    build:
+      context: ./employment-subgraph
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-federation
+      DB_PORT: 5432
+      DB_NAME: employment_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+    ports:
+      - "8092:8080"
+    depends_on:
+      postgres-federation:
+        condition: service_healthy
+
+  security-subgraph:
+    build:
+      context: ./security-subgraph
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-federation
+      DB_PORT: 5432
+      DB_NAME: security_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+    ports:
+      - "8093:8080"
+    depends_on:
+      postgres-federation:
+        condition: service_healthy
+
+  router:
+    image: ghcr.io/apollographql/router:v1.57.1
+    volumes:
+      - ./router/federation/router.yaml:/dist/config/router.yaml
+      - ./router/federation/supergraph.graphql:/dist/config/supergraph.graphql
+    ports:
+      - "4000:4000"
+      - "8088:8088"
+    command: ["--config", "/dist/config/router.yaml", "--supergraph", "/dist/config/supergraph.graphql"]
+    depends_on:
+      - hr-subgraph
+      - employment-subgraph
+      - security-subgraph
+
+  # =============================================================================
+  # CDC ARCHITECTURE (Event-Driven)
+  # =============================================================================
+
+  hr-cdc-service:
+    build:
+      context: ./hr-cdc-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-cdc
+      DB_PORT: 5432
+      DB_NAME: hr_cdc_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      KAFKA_BOOTSTRAP: kafka:9092
+    ports:
+      - "8084:8080"
+    depends_on:
+      postgres-cdc:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+
+  employment-cdc-service:
+    build:
+      context: ./employment-cdc-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-cdc
+      DB_PORT: 5432
+      DB_NAME: employment_cdc_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      KAFKA_BOOTSTRAP: kafka:9092
+    ports:
+      - "8085:8080"
+    depends_on:
+      postgres-cdc:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+
+  security-cdc-service:
+    build:
+      context: ./security-cdc-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-cdc
+      DB_PORT: 5432
+      DB_NAME: security_cdc_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      KAFKA_BOOTSTRAP: kafka:9092
+    ports:
+      - "8086:8080"
+    depends_on:
+      postgres-cdc:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+
+  cdc-projection-consumer:
+    build:
+      context: ./cdc-projection-consumer
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-cdc
+      DB_PORT: 5432
+      DB_NAME: projections_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      KAFKA_BOOTSTRAP: kafka:9092
+    ports:
+      - "8089:8080"
+    depends_on:
+      postgres-cdc:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      hr-cdc-service:
+        condition: service_started
+
+  cdc-query-service:
+    build:
+      context: ./cdc-query-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_HOST: postgres-cdc
+      DB_PORT: 5432
+      DB_NAME: projections_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+    ports:
+      - "8090:8080"
+    depends_on:
+      cdc-projection-consumer:
+        condition: service_started
+
+  # =============================================================================
+  # DASHBOARD
+  # =============================================================================
+
+  dashboard:
+    build:
+      context: ./comparison-dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - router
+      - cdc-query-service
+
+volumes:
+  postgres-federation-data:
+  postgres-cdc-data:
+  kafka-data:

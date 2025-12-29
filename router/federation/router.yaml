@@ -1,0 +1,60 @@
+# Apollo Router Configuration for Federation Demo
+
+# Server configuration
+supergraph:
+  listen: 0.0.0.0:4000
+  introspection: true
+
+# CORS settings for dashboard access
+cors:
+  origins:
+    - http://localhost:3000
+    - http://localhost:8080
+    - http://dashboard:8080
+  allow_any_origin: true
+  methods:
+    - GET
+    - POST
+    - OPTIONS
+  allow_headers:
+    - Content-Type
+    - Authorization
+    - X-Apollo-Operation-Name
+
+# Sandbox for development
+sandbox:
+  enabled: true
+
+# Homepage
+homepage:
+  enabled: false
+
+# Health check endpoint
+health_check:
+  listen: 0.0.0.0:8088
+  enabled: true
+
+# Include subgraph errors in responses (for demo purposes)
+include_subgraph_errors:
+  all: true
+
+# Traffic shaping for subgraphs
+traffic_shaping:
+  all:
+    timeout: 30s
+  subgraphs:
+    hr:
+      timeout: 10s
+    employment:
+      timeout: 10s
+    security:
+      timeout: 10s
+
+# Headers to propagate to subgraphs
+headers:
+  all:
+    request:
+      - propagate:
+          named: "X-Request-Id"
+      - propagate:
+          named: "X-Correlation-Id"

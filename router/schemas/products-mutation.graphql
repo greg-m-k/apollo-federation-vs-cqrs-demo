@@ -1,0 +1,145 @@
+schema {
+  mutation: Mutation
+}
+
+"Indicates to composition that the target element is accessible only to the authenticated supergraph users."
+directive @authenticated on SCALAR | OBJECT | FIELD_DEFINITION | INTERFACE | ENUM
+
+"Indicates to composition that all uses of a particular custom type system directive in the subgraph schema should be preserved in the supergraph schema (by default, composition omits most directives from the supergraph schema)."
+directive @composeDirective(name: String!) repeatable on SCHEMA
+
+"Indicates a Bean Validation constraint"
+directive @constraint(format: String, max: BigInteger, maxFloat: BigDecimal, maxLength: Int, min: BigInteger, minFloat: BigDecimal, minLength: Int, pattern: String) repeatable on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Indicates that an object or interface definition is an extension of another definition of that same type.
+If your subgraph library supports GraphQL's built-in extend keyword, do not use this directive! Instead, use extend.
+"""
+directive @extends on OBJECT | INTERFACE
+
+"""
+Indicates that this subgraph usually can't resolve a particular object field, but it still needs to define that field for other purposes.
+This directive is always used in combination with another directive that references object fields, such as @provides or @requires.
+"""
+directive @external on OBJECT | FIELD_DEFINITION
+
+"Indicates that a definition in the subgraph schema should be omitted from the router's API schema, even if that definition is also present in other subgraphs. This means that the field is not exposed to clients at all."
+directive @inaccessible on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+"""
+Indicates that an object definition serves as an abstraction of another subgraph's entity interface. This abstraction enables a subgraph to automatically contribute fields to all entities that implement a particular entity interface.
+During composition, the fields of every @interfaceObject are added both to their corresponding interface definition and to all entity types that implement that interface.
+"""
+directive @interfaceObject on OBJECT
+
+"Designates an object type as an entity and specifies its key fields (a set of fields that the subgraph can use to uniquely identify any instance of the entity). You can apply multiple @key directives to a single entity (to specify multiple valid sets of key fields)."
+directive @key(fields: _FieldSet!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE
+
+"This directive links definitions from an external specification to this schema."
+directive @link(as: String, for: Purpose, import: [Import], url: String!) repeatable on SCHEMA
+
+"""
+Indicates that an object field is now resolved by this subgraph instead of another subgraph where it's also defined. This enables you to migrate a field from one subgraph to another.
+You can apply @override to entity fields and fields of the root operation types (such as Query and Mutation).
+"""
+directive @override(from: String!) on FIELD_DEFINITION
+
+"Indicates to composition that the target element is restricted based on authorization policies that are evaluated in a Rhai script or coprocessor."
+directive @policy(policies: [[Policy!]!]!) on SCALAR | OBJECT | FIELD_DEFINITION | INTERFACE | ENUM
+
+"""
+Specifies a set of entity fields that a subgraph can resolve, but only at a particular schema path (at other paths, the subgraph can't resolve those fields).
+If a subgraph can always resolve a particular entity field, do not apply this directive.
+Using this directive is always an optional optimization. It can reduce the total number of subgraphs that your graph router needs to communicate with to resolve certain operations, which can improve performance.
+"""
+directive @provides(fields: _FieldSet!) on FIELD_DEFINITION
+
+"Indicates that the resolver for a particular entity field depends on the values of other entity fields that are resolved by other subgraphs. This tells the graph router that it needs to fetch the values of those externally defined fields first, even if the original client query didn't request them."
+directive @requires(fields: _FieldSet!) on FIELD_DEFINITION
+
+"Indicates to composition that the target element is accessible only to the authenticated supergraph users with the appropriate JWT scopes"
+directive @requiresScopes(scopes: [[Scope!]!]!) on SCALAR | OBJECT | FIELD_DEFINITION | INTERFACE | ENUM
+
+"Used to specify the role required to execute a given field or operation."
+directive @rolesAllowed(value: String) on FIELD_DEFINITION
+
+"Indicates that an object type's field is allowed to be resolved by multiple subgraphs (by default in Federation 2, object fields can be resolved by only one subgraph)."
+directive @shareable repeatable on OBJECT | FIELD_DEFINITION
+
+"Applies arbitrary string metadata to a schema location. Custom tooling can use this metadata during any step of the schema delivery flow, including composition, static analysis, and documentation. Apollo Studio's enterprise contracts feature uses @tag with its inclusion and exclusion filters."
+directive @tag(name: String!) repeatable on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+union _Entity = Product
+
+"A product item that can be mutated"
+type Product @key(fields : "id") {
+  "Category ID (resolved by Categories subgraph)"
+  categoryId: String
+  "Optional product description"
+  description: String
+  "Unique identifier for the product"
+  id: ID
+  "Product name"
+  name: String
+  "Product price"
+  price: BigDecimal
+}
+
+"Input for creating or updating a product"
+input ProductInput {
+  "Product name"
+  name: String
+  "Optional product description"
+  description: String
+  "Product price"
+  price: BigDecimal
+  "Category ID for the product"
+  categoryId: String
+}
+
+"Mutation root"
+type Mutation {
+  "Create a new product"
+  createProduct(input: ProductInput!): Product
+  "Update an existing product"
+  updateProduct(id: String!, input: ProductInput!): Product
+  "Delete a product by ID"
+  deleteProduct(id: String!): Boolean
+}
+
+"Query root - required by federation even if empty"
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type _Service {
+  sdl: String!
+}
+
+enum Purpose {
+  "`EXECUTION` features provide metadata necessary for operation execution."
+  EXECUTION
+  "`SECURITY` features provide metadata necessary to securely resolve fields."
+  SECURITY
+}
+
+"Scalar for BigDecimal"
+scalar BigDecimal
+
+"Scalar for BigInteger"
+scalar BigInteger
+
+"Scalar for _FieldSet"
+scalar _FieldSet
+
+"Scalar for Import"
+scalar Import
+
+"Scalar for Policy"
+scalar Policy
+
+"Scalar for Scope"
+scalar Scope
+
+scalar _Any
