@@ -56,6 +56,41 @@ docker compose -f docker-compose.comparison.yml up --build
 docker compose -f docker-compose.comparison.yml down
 ```
 
+### Manual Setup (No Make Required)
+
+If you can't or don't want to use `make`:
+
+**Windows (PowerShell):**
+```powershell
+# 1. Check prerequisites and pre-build
+.\tilt\scripts\setup-dev.ps1
+
+# 2. Start with Tilt
+tilt up
+
+# Or start with Docker Compose
+docker compose -f docker-compose.comparison.yml up --build
+```
+
+**Mac/Linux (Bash):**
+```bash
+# 1. Check prerequisites and pre-build
+./tilt/scripts/setup-dev.sh
+
+# 2. Start with Tilt
+tilt up
+
+# Or start with Docker Compose
+docker compose -f docker-compose.comparison.yml up --build
+```
+
+**Skip pre-build entirely** (Tilt/Docker will build on first run, just slower):
+```bash
+tilt up
+# or
+docker compose -f docker-compose.comparison.yml up --build
+```
+
 ## Access Points
 
 | Service | URL |
