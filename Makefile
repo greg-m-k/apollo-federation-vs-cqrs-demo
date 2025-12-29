@@ -1,11 +1,11 @@
-# Makefile for Federation vs CDC Architecture Comparison Demo
-# ============================================================
+# Makefile for Apollo Federation vs Kafka Projections Demo
+# ========================================================
 
-.PHONY: help setup prereqs up down clean federation-only cdc-only kill-security restore-security logs-kafka lag demo test
+.PHONY: help setup prereqs up down clean federation-only kafka-only kill-security restore-security logs-kafka lag demo test
 
 # Default target
 help:
-	@echo "Architecture Comparison Demo - Available Commands:"
+	@echo "Apollo Federation vs Kafka Projections - Available Commands:"
 	@echo ""
 	@echo "  SETUP"
 	@echo "  make setup            - Install prerequisites check + initial build"
@@ -17,7 +17,7 @@ help:
 	@echo "  make clean            - Full cleanup (delete namespaces)"
 	@echo ""
 	@echo "  make federation-only  - Start only Federation architecture"
-	@echo "  make cdc-only         - Start only CDC architecture"
+	@echo "  make kafka-only       - Start only Kafka Projections architecture"
 	@echo ""
 	@echo "  DEMO & TESTING"
 	@echo "  make demo             - Run automated demo script"
@@ -32,7 +32,7 @@ help:
 	@echo "  ACCESS POINTS"
 	@echo "  Dashboard:    http://localhost:3000"
 	@echo "  Router:       http://localhost:4000"
-	@echo "  CDC Query:    http://localhost:8090"
+	@echo "  Projections:  http://localhost:8090"
 	@echo "  Tilt UI:      http://localhost:10350"
 
 # Setup - check prerequisites and pre-build
@@ -71,37 +71,37 @@ federation-only:
 	@echo "Starting Federation stack only..."
 	tilt up -- --federation-only
 
-# Start only CDC side
-cdc-only:
-	@echo "Starting CDC stack only..."
-	tilt up -- --cdc-only
+# Start only Kafka Projections side
+kafka-only:
+	@echo "Starting Kafka Projections stack only..."
+	tilt up -- --kafka-only
 
 # Simulate Security service failure
 kill-security:
 	@echo "Killing Security services..."
 	kubectl scale deployment security-subgraph --replicas=0 -n federation-demo
-	kubectl scale deployment security-cdc-service --replicas=0 -n cdc-demo
+	kubectl scale deployment security-cdc-service --replicas=0 -n kafka-demo
 	@echo ""
 	@echo "Security services stopped!"
 	@echo "Federation queries touching Security will now fail."
-	@echo "CDC queries will continue to work with stale data."
+	@echo "Kafka Projections queries will continue to work with stale data."
 
 # Restore Security service
 restore-security:
 	@echo "Restoring Security services..."
 	kubectl scale deployment security-subgraph --replicas=1 -n federation-demo
-	kubectl scale deployment security-cdc-service --replicas=1 -n cdc-demo
+	kubectl scale deployment security-cdc-service --replicas=1 -n kafka-demo
 	@echo ""
 	@echo "Security services restored!"
 
 # Show Kafka logs
 logs-kafka:
-	kubectl logs -f -l app=kafka -n cdc-demo
+	kubectl logs -f -l app=kafka -n kafka-demo
 
 # Show consumer lag
 lag:
 	@echo "Consumer lag for projection-consumer:"
-	kubectl exec -it kafka-0 -n cdc-demo -- /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group projection-consumer 2>/dev/null || echo "Consumer group not found yet"
+	kubectl exec -it kafka-0 -n kafka-demo -- /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group projection-consumer 2>/dev/null || echo "Consumer group not found yet"
 
 # Run automated demo
 demo:

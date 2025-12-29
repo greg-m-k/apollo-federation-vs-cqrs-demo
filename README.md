@@ -34,7 +34,7 @@ make prereqs
 
 ```bash
 make federation-only   # Just Federation architecture
-make cdc-only          # Just Kafka Projections architecture
+make kafka-only        # Just Kafka Projections architecture
 ```
 
 ### Stop
@@ -257,7 +257,7 @@ make up               # Start all services
 make down             # Stop services
 make clean            # Full cleanup
 make federation-only  # Start Federation only
-make cdc-only         # Start Kafka Projections only
+make kafka-only       # Start Kafka Projections only
 make demo             # Run demo script
 make test             # Run Playwright tests
 make kill-security    # Stop Security service
