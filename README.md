@@ -13,6 +13,7 @@ Both architectures model the same domain: **Person/Employee/Badge** across HR, E
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Tilt](https://docs.tilt.dev/install.html)
 - Java 17+
+- `make` (included on Mac/Linux; Windows users: use Git Bash, WSL, or [install make](https://gnuwin32.sourceforge.net/packages/make.htm))
 
 ## Quick Start
 
@@ -41,6 +42,18 @@ make cdc-only          # Just Event-Driven CQRS architecture
 ```bash
 make down              # Stop services
 make clean             # Stop and delete namespaces
+```
+
+### Alternative: Docker Compose (No Kubernetes)
+
+If you don't want to use Tilt/Kubernetes:
+
+```bash
+# Build and start all services
+docker compose -f docker-compose.comparison.yml up --build
+
+# Stop
+docker compose -f docker-compose.comparison.yml down
 ```
 
 ## Access Points
@@ -217,6 +230,24 @@ make restore-security # Restore Security service
 make logs-kafka       # Tail Kafka logs
 make lag              # Show consumer lag
 ```
+
+## Troubleshooting
+
+**`make` command not found (Windows)**
+- Use Git Bash instead of PowerShell/CMD, or
+- Run PowerShell scripts directly: `.\tilt\scripts\setup-dev.ps1`
+
+**Docker build fails**
+- Ensure Docker Desktop is running
+- Try `docker system prune` to free up space
+
+**Services not starting**
+- Check Docker Desktop has enough memory (4GB+ recommended)
+- Verify Kubernetes is enabled in Docker Desktop settings
+
+**Port already in use**
+- Stop other services using ports 3000, 4000, 8080-8085, 8090
+- Run `docker compose down` to clean up orphaned containers
 
 ## Documentation
 
