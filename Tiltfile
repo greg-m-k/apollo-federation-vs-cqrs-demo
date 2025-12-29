@@ -99,7 +99,7 @@ if deploy_federation:
     # HR Subgraph
     quarkus_service(
         name='hr-subgraph',
-        context='./hr-subgraph',
+        context='./services/federation/hr-subgraph',
         namespace='federation',
         db_name='hr_db',
         port_forward='8091:8080',
@@ -116,7 +116,7 @@ if deploy_federation:
     # Employment Subgraph
     quarkus_service(
         name='employment-subgraph',
-        context='./employment-subgraph',
+        context='./services/federation/employment-subgraph',
         namespace='federation',
         db_name='employment_db',
         port_forward='8092:8080',
@@ -133,7 +133,7 @@ if deploy_federation:
     # Security Subgraph
     quarkus_service(
         name='security-subgraph',
-        context='./security-subgraph',
+        context='./services/federation/security-subgraph',
         namespace='federation',
         db_name='security_db',
         port_forward='8093:8080',
@@ -181,7 +181,7 @@ if deploy_cdc:
     # HR CDC Service
     quarkus_service(
         name='hr-cdc-service',
-        context='./hr-cdc-service',
+        context='./services/cdc/hr-cdc-service',
         namespace='cdc',
         db_name='hr_cdc_db',
         port_forward='8084:8080',
@@ -198,7 +198,7 @@ if deploy_cdc:
     # Employment CDC Service
     quarkus_service(
         name='employment-cdc-service',
-        context='./employment-cdc-service',
+        context='./services/cdc/employment-cdc-service',
         namespace='cdc',
         db_name='employment_cdc_db',
         port_forward='8085:8080',
@@ -215,7 +215,7 @@ if deploy_cdc:
     # Security CDC Service
     quarkus_service(
         name='security-cdc-service',
-        context='./security-cdc-service',
+        context='./services/cdc/security-cdc-service',
         namespace='cdc',
         db_name='security_cdc_db',
         port_forward='8086:8080',
@@ -232,7 +232,7 @@ if deploy_cdc:
     # CDC Projection Consumer
     quarkus_service(
         name='cdc-projection-consumer',
-        context='./cdc-projection-consumer',
+        context='./services/cdc/projection-consumer',
         namespace='cdc',
         db_name='projections_db',
         port_forward='8089:8080',
@@ -249,7 +249,7 @@ if deploy_cdc:
     # CDC Query Service
     quarkus_service(
         name='cdc-query-service',
-        context='./cdc-query-service',
+        context='./services/cdc/query-service',
         namespace='cdc',
         db_name='projections_db',
         port_forward='8090:8080',
@@ -271,11 +271,11 @@ if deploy_federation and deploy_cdc:
     # Build dashboard
     docker_build(
         'comparison-dashboard:latest',
-        context='./comparison-dashboard',
-        dockerfile='./comparison-dashboard/Dockerfile',
+        context='./dashboard',
+        dockerfile='./dashboard/Dockerfile',
         live_update=[
-            sync('./comparison-dashboard/src', '/app/src'),
-            run('cd /app && npm run build', trigger=['./comparison-dashboard/package.json']),
+            sync('./dashboard/src', '/app/src'),
+            run('cd /app && npm run build', trigger=['./dashboard/package.json']),
         ]
     )
 

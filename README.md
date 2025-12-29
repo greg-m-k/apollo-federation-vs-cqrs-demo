@@ -164,24 +164,31 @@ Failure: Queries work (stale data)
 ## Project Structure
 
 ```
-├── hr-subgraph/              # Federation: HR Person subgraph
-├── employment-subgraph/      # Federation: Employment subgraph
-├── security-subgraph/        # Federation: Security subgraph
-├── router/                   # Apollo Router config
+├── services/
+│   ├── federation/              # GraphQL Federation subgraphs
+│   │   ├── hr-subgraph/
+│   │   ├── employment-subgraph/
+│   │   └── security-subgraph/
+│   └── cdc/                     # Event-Driven CQRS services
+│       ├── hr-cdc-service/
+│       ├── employment-cdc-service/
+│       ├── security-cdc-service/
+│       ├── projection-consumer/ # Kafka consumer
+│       └── query-service/       # Projection service
 │
-├── hr-cdc-service/          # Event-Driven: HR service with Outbox
-├── employment-cdc-service/  # Event-Driven: Employment service
-├── security-cdc-service/    # Event-Driven: Security service
-├── cdc-projection-consumer/ # Event-Driven: Kafka consumer
-├── cdc-query-service/       # Event-Driven: Projection service
+├── dashboard/                   # React comparison dashboard
+├── router/                      # Apollo Router config
+│   └── federation/              # Supergraph schemas
 │
-├── comparison-dashboard/    # React dashboard
-├── k8s/                     # Kubernetes manifests
-├── tilt/scripts/            # Setup scripts
-├── scripts/                 # Demo scripts
-├── tests/                   # Playwright tests
-├── Tiltfile                 # Tilt configuration
-└── Makefile                 # Make commands
+├── k8s/
+│   ├── federation/              # Federation k8s manifests
+│   ├── cdc/                     # CDC k8s manifests
+│   └── infra/                   # Shared infrastructure (postgres, kafka)
+│
+├── tests/                       # Playwright E2E tests
+├── scripts/                     # Demo scripts
+├── Tiltfile                     # Tilt configuration
+└── Makefile                     # Make commands
 ```
 
 ## Technology Stack

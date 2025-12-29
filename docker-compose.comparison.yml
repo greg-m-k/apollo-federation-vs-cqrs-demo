@@ -93,7 +93,7 @@ services:
 
   hr-subgraph:
     build:
-      context: ./hr-subgraph
+      context: ./services/federation/hr-subgraph
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-federation
@@ -109,7 +109,7 @@ services:
 
   employment-subgraph:
     build:
-      context: ./employment-subgraph
+      context: ./services/federation/employment-subgraph
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-federation
@@ -125,7 +125,7 @@ services:
 
   security-subgraph:
     build:
-      context: ./security-subgraph
+      context: ./services/federation/security-subgraph
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-federation
@@ -159,7 +159,7 @@ services:
 
   hr-cdc-service:
     build:
-      context: ./hr-cdc-service
+      context: ./services/cdc/hr-cdc-service
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-cdc
@@ -178,7 +178,7 @@ services:
 
   employment-cdc-service:
     build:
-      context: ./employment-cdc-service
+      context: ./services/cdc/employment-cdc-service
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-cdc
@@ -197,7 +197,7 @@ services:
 
   security-cdc-service:
     build:
-      context: ./security-cdc-service
+      context: ./services/cdc/security-cdc-service
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-cdc
@@ -216,7 +216,7 @@ services:
 
   cdc-projection-consumer:
     build:
-      context: ./cdc-projection-consumer
+      context: ./services/cdc/projection-consumer
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-cdc
@@ -237,7 +237,7 @@ services:
 
   cdc-query-service:
     build:
-      context: ./cdc-query-service
+      context: ./services/cdc/query-service
       dockerfile: src/main/docker/Dockerfile.jvm
     environment:
       DB_HOST: postgres-cdc
@@ -257,7 +257,7 @@ services:
 
   dashboard:
     build:
-      context: ./comparison-dashboard
+      context: ./dashboard
     ports:
       - "3000:80"
     depends_on:
