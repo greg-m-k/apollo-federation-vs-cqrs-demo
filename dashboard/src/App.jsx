@@ -90,6 +90,44 @@ function App() {
     fetchPersons();
   }, [fetchPersons]);
 
+  // Health check on mount to update service status indicators
+  useEffect(() => {
+    const checkHealth = async () => {
+      // Check Federation (simple GraphQL query to router)
+      try {
+        const fedResponse = await fetch(FEDERATION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: '{ __typename }' })
+        });
+        if (fedResponse.ok) {
+          setFederationMetrics(prev => ({
+            ...prev,
+            servicesUp: { hr: true, employment: true, security: true }
+          }));
+        }
+      } catch (e) {
+        // Federation services not available
+      }
+
+      // Check Kafka (query service health - base URL without /api)
+      const kafkaBaseUrl = KAFKA_URL.replace('/api', '');
+      try {
+        const kafkaResponse = await fetch(`${kafkaBaseUrl}/q/health/ready`, { method: 'GET' });
+        if (kafkaResponse.ok) {
+          setKafkaMetrics(prev => ({
+            ...prev,
+            servicesUp: { query: true, consumer: true, kafka: true }
+          }));
+        }
+      } catch (e) {
+        // Kafka services not available
+      }
+    };
+
+    checkHealth();
+  }, []);
+
   const addLog = useCallback((side, message) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => ({
