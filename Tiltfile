@@ -1,22 +1,22 @@
 # -*- mode: python -*-
-# Tiltfile for Apollo Federation vs Kafka Projections Demo
-# ========================================================
+# Tiltfile for Apollo Federation vs Event-Driven Projections Demo
+# ================================================================
 #
 # Usage:
 #   tilt up                       # Start all services
 #   tilt up -- --federation-only  # Federation stack only
-#   tilt up -- --kafka-only       # Kafka Projections stack only
+#   tilt up -- --event-only       # Event-Driven Projections stack only
 #
 # Prerequisites:
-#   - kind cluster created via: .\tilt\scripts\setup-dev.ps1
+#   - kind cluster created via: .\infra\tilt\scripts\setup-dev.ps1
 #   - Maven projects pre-built (setup script does this)
 
 # Load extensions
 load('ext://restart_process', 'docker_build_with_restart')
 
 # Cross-platform Maven wrapper command
-# Detects OS and uses appropriate wrapper script
-mvn_cmd = '.\\\\mvnw.cmd' if os.name == 'nt' else './mvnw'
+# Runs from infra/maven where .mvn/wrapper/ lives
+mvn_prefix = 'cd infra\\\\maven && .\\\\mvnw.cmd' if os.name == 'nt' else 'cd infra/maven && ./mvnw'
 
 # ============================================================================
 # CONFIGURATION
@@ -25,56 +25,62 @@ mvn_cmd = '.\\\\mvnw.cmd' if os.name == 'nt' else './mvnw'
 # Allow local development clusters
 allow_k8s_contexts(['kind-apollo-demo', 'docker-desktop'])
 
-# Update settings for better performance
+# Update settings - no parallelism limit
 update_settings(
-    max_parallel_updates=3,
+    max_parallel_updates=20,
     k8s_upsert_timeout_secs=120
 )
 
 # User settings (can be overridden via command line)
 config.define_bool('federation-only')
-config.define_bool('kafka-only')
+config.define_bool('event-only')
 cfg = config.parse()
 
 # Determine which stacks to deploy
-deploy_federation = not cfg.get('kafka-only', False)
-deploy_kafka = not cfg.get('federation-only', False)
+deploy_federation = not cfg.get('event-only', False)
+deploy_event = not cfg.get('federation-only', False)
 
 # ============================================================================
 # NAMESPACES
 # ============================================================================
 
-k8s_yaml('k8s/namespace.yaml')
+k8s_yaml('infra/k8s/namespace.yaml')
 
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
 
-def quarkus_service(name, context, namespace, db_name, port_forward, resource_deps=[], extra_env={}):
+def quarkus_service(name, context, namespace, port_forward, runtime_deps=[]):
     """
     Build and deploy a Quarkus JVM service.
 
-    1. Runs Maven locally to build the quarkus-app directory
+    1. Runs Maven locally to build the quarkus-app directory (NO DB dependency - builds in parallel)
     2. Builds Docker image from the pre-built artifacts
     3. Configures live_update for JAR syncing (requires restart)
+
+    Args:
+        runtime_deps: Dependencies for k8s deployment (e.g., postgres). Builds start immediately.
     """
-    # Local Maven build
+    # Local Maven build - NO dependencies, starts immediately in parallel
+    # Path is relative to infra/maven/ where mvnw runs from
+    pom_path = '../../' + context.lstrip('./') + '/pom.xml'
     local_resource(
         name + '-build',
-        cmd='cd ' + context + ' && ' + mvn_cmd + ' package -DskipTests -q',
+        cmd=mvn_prefix + ' -f ' + pom_path + ' package -DskipTests -q',
         deps=[
             context + '/src',
             context + '/pom.xml'
         ],
-        resource_deps=resource_deps,
-        labels=[namespace, 'build']
+        resource_deps=[],  # Builds don't wait for postgres!
+        labels=['build'],
+        allow_parallel=True  # Run builds concurrently!
     )
 
     # Docker build with restart capability
     docker_build_with_restart(
         name + ':latest',
         context=context,
-        dockerfile=context + '/src/main/docker/Dockerfile.jvm',
+        dockerfile='infra/docker/Dockerfile.quarkus-jvm',  # Shared Dockerfile
         entrypoint=['/opt/jboss/container/java/run/run-java.sh'],
         only=[
             'target/quarkus-app'
@@ -93,11 +99,11 @@ def quarkus_service(name, context, namespace, db_name, port_forward, resource_de
 
 if deploy_federation:
     # PostgreSQL for Federation
-    k8s_yaml('k8s/federation/postgres.yaml')
+    k8s_yaml('infra/k8s/federation/postgres.yaml')
     k8s_resource(
         'postgres-federation',
         port_forwards=['5434:5432'],
-        labels=['federation', 'infra']
+        labels=['infra']
     )
 
     # HR Subgraph
@@ -105,16 +111,14 @@ if deploy_federation:
         name='hr-subgraph',
         context='./services/federation/hr-subgraph',
         namespace='federation',
-        db_name='hr_db',
-        port_forward='8091:8080',
-        resource_deps=['postgres-federation']
+        port_forward='8091:8080'
     )
-    k8s_yaml('k8s/federation/hr-subgraph.yaml')
+    k8s_yaml('infra/k8s/federation/hr-subgraph.yaml')
     k8s_resource(
         'hr-subgraph',
         port_forwards=['8091:8080'],
         resource_deps=['hr-subgraph-build', 'postgres-federation'],
-        labels=['federation', 'subgraph']
+        labels=['federation']
     )
 
     # Employment Subgraph
@@ -122,16 +126,14 @@ if deploy_federation:
         name='employment-subgraph',
         context='./services/federation/employment-subgraph',
         namespace='federation',
-        db_name='employment_db',
-        port_forward='8092:8080',
-        resource_deps=['postgres-federation']
+        port_forward='8092:8080'
     )
-    k8s_yaml('k8s/federation/employment-subgraph.yaml')
+    k8s_yaml('infra/k8s/federation/employment-subgraph.yaml')
     k8s_resource(
         'employment-subgraph',
         port_forwards=['8092:8080'],
         resource_deps=['employment-subgraph-build', 'postgres-federation'],
-        labels=['federation', 'subgraph']
+        labels=['federation']
     )
 
     # Security Subgraph
@@ -139,152 +141,136 @@ if deploy_federation:
         name='security-subgraph',
         context='./services/federation/security-subgraph',
         namespace='federation',
-        db_name='security_db',
-        port_forward='8093:8080',
-        resource_deps=['postgres-federation']
+        port_forward='8093:8080'
     )
-    k8s_yaml('k8s/federation/security-subgraph.yaml')
+    k8s_yaml('infra/k8s/federation/security-subgraph.yaml')
     k8s_resource(
         'security-subgraph',
         port_forwards=['8093:8080'],
         resource_deps=['security-subgraph-build', 'postgres-federation'],
-        labels=['federation', 'subgraph']
+        labels=['federation']
     )
 
     # Apollo Router
-    k8s_yaml('k8s/federation/router.yaml')
+    k8s_yaml('infra/k8s/federation/router.yaml')
     k8s_resource(
         'router',
         port_forwards=['4000:4000', '8088:8088'],
         resource_deps=['hr-subgraph', 'employment-subgraph', 'security-subgraph'],
-        labels=['federation', 'gateway']
+        labels=['federation']
     )
 
 # ============================================================================
-# KAFKA PROJECTIONS STACK
+# EVENT-DRIVEN PROJECTIONS STACK
 # ============================================================================
 
-if deploy_kafka:
+if deploy_event:
     # PostgreSQL for Kafka services
-    k8s_yaml('k8s/kafka/postgres.yaml')
+    k8s_yaml('infra/k8s/kafka/postgres.yaml')
     k8s_resource(
         'postgres-kafka',
         port_forwards=['5433:5432'],
-        labels=['kafka', 'infra']
+        labels=['infra']
     )
 
     # Kafka
-    k8s_yaml('k8s/kafka/kafka.yaml')
+    k8s_yaml('infra/k8s/kafka/kafka.yaml')
     k8s_resource(
         'kafka',
         port_forwards=['9092:9092'],
         resource_deps=['postgres-kafka'],
-        labels=['kafka', 'infra']
+        labels=['infra']
     )
 
     # HR Events Service
     quarkus_service(
         name='hr-events-service',
-        context='./services/kafka/hr-events-service',
+        context='./services/event/hr-events-service',
         namespace='kafka',
-        db_name='hr_events_db',
-        port_forward='8084:8080',
-        resource_deps=['postgres-kafka', 'kafka']
+        port_forward='8084:8080'
     )
-    k8s_yaml('k8s/kafka/hr-events-service.yaml')
+    k8s_yaml('infra/k8s/kafka/hr-events-service.yaml')
     k8s_resource(
         'hr-events-service',
         port_forwards=['8084:8080'],
         resource_deps=['hr-events-service-build', 'postgres-kafka', 'kafka'],
-        labels=['kafka', 'service']
+        labels=['event']
     )
 
     # Employment Events Service
     quarkus_service(
         name='employment-events-service',
-        context='./services/kafka/employment-events-service',
+        context='./services/event/employment-events-service',
         namespace='kafka',
-        db_name='employment_events_db',
-        port_forward='8085:8080',
-        resource_deps=['postgres-kafka', 'kafka']
+        port_forward='8085:8080'
     )
-    k8s_yaml('k8s/kafka/employment-events-service.yaml')
+    k8s_yaml('infra/k8s/kafka/employment-events-service.yaml')
     k8s_resource(
         'employment-events-service',
         port_forwards=['8085:8080'],
         resource_deps=['employment-events-service-build', 'postgres-kafka', 'kafka'],
-        labels=['kafka', 'service']
+        labels=['event']
     )
 
     # Security Events Service
     quarkus_service(
         name='security-events-service',
-        context='./services/kafka/security-events-service',
+        context='./services/event/security-events-service',
         namespace='kafka',
-        db_name='security_events_db',
-        port_forward='8086:8080',
-        resource_deps=['postgres-kafka', 'kafka']
+        port_forward='8086:8080'
     )
-    k8s_yaml('k8s/kafka/security-events-service.yaml')
+    k8s_yaml('infra/k8s/kafka/security-events-service.yaml')
     k8s_resource(
         'security-events-service',
         port_forwards=['8086:8080'],
         resource_deps=['security-events-service-build', 'postgres-kafka', 'kafka'],
-        labels=['kafka', 'service']
+        labels=['event']
     )
 
     # Projection Consumer
     quarkus_service(
         name='projection-consumer',
-        context='./services/kafka/projection-consumer',
+        context='./services/event/projection-consumer',
         namespace='kafka',
-        db_name='projections_db',
-        port_forward='8089:8080',
-        resource_deps=['postgres-kafka', 'kafka']
+        port_forward='8089:8080'
     )
-    k8s_yaml('k8s/kafka/projection-consumer.yaml')
+    k8s_yaml('infra/k8s/kafka/projection-consumer.yaml')
     k8s_resource(
         'projection-consumer',
         port_forwards=['8089:8080'],
         resource_deps=['projection-consumer-build', 'hr-events-service', 'employment-events-service', 'security-events-service'],
-        labels=['kafka', 'service']
+        labels=['event']
     )
 
     # Query Service
     quarkus_service(
         name='query-service',
-        context='./services/kafka/query-service',
+        context='./services/event/query-service',
         namespace='kafka',
-        db_name='projections_db',
-        port_forward='8090:8080',
-        resource_deps=['postgres-kafka']
+        port_forward='8090:8080'
     )
-    k8s_yaml('k8s/kafka/query-service.yaml')
+    k8s_yaml('infra/k8s/kafka/query-service.yaml')
     k8s_resource(
         'query-service',
         port_forwards=['8090:8080'],
         resource_deps=['query-service-build', 'projection-consumer'],
-        labels=['kafka', 'service']
+        labels=['event']
     )
 
 # ============================================================================
 # DASHBOARD
 # ============================================================================
 
-if deploy_federation and deploy_kafka:
-    # Build dashboard
+if deploy_federation and deploy_event:
+    # Build dashboard - rebuilds container on source changes
     docker_build(
         'comparison-dashboard:latest',
-        context='./dashboard',
-        dockerfile='./dashboard/Dockerfile',
-        live_update=[
-            sync('./dashboard/src', '/app/src'),
-            run('cd /app && npm run build', trigger=['./dashboard/package.json']),
-        ]
+        context='./clients/dashboard',
+        dockerfile='./clients/dashboard/Dockerfile',
     )
 
     # Deploy dashboard
-    k8s_yaml('k8s/kafka/dashboard.yaml')
+    k8s_yaml('infra/k8s/kafka/dashboard.yaml')
     k8s_resource(
         'comparison-dashboard',
         port_forwards=['3000:80'],
@@ -304,15 +290,15 @@ if deploy_federation:
         labels=['federation']
     )
 
-if deploy_kafka:
+if deploy_event:
     local_resource(
-        'kafka-ready',
-        cmd='echo "Kafka Projections stack is ready at http://localhost:8090"',
+        'event-ready',
+        cmd='echo "Event-Driven Projections stack is ready at http://localhost:8090"',
         resource_deps=['query-service'],
-        labels=['kafka']
+        labels=['event']
     )
 
-if deploy_federation and deploy_kafka:
+if deploy_federation and deploy_event:
     local_resource(
         'all-ready',
         cmd='echo "All services ready! Dashboard: http://localhost:3000"',

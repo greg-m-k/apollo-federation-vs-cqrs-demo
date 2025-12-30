@@ -60,10 +60,10 @@ If you already completed work and user just wants to record it:
 
 Select ONE stage that best describes the work:
 
-**Constitution** (→ `history/prompts/constitution/`):
+**Constitution** (→ `docs/history/prompts/constitution/`):
 - `constitution` - Defining quality standards, project principles
 
-**Feature-specific** (→ `history/prompts/<feature-name>/` - requires feature context):
+**Feature-specific** (→ `docs/history/prompts/<feature-name>/` - requires feature context):
 - `spec` - Creating feature specifications
 - `plan` - Architecture design and technical approach
 - `tasks` - Implementation breakdown with test cases
@@ -73,7 +73,7 @@ Select ONE stage that best describes the work:
 - `explainer` - Code explanations, documentation
 - `misc` - Other feature-specific work
 
-**General/Catch-all** (→ `history/prompts/general/`):
+**General/Catch-all** (→ `docs/history/prompts/general/`):
 - `general` - General work not tied to a specific feature
 
 ## Step 3: Create PHR File
@@ -93,9 +93,9 @@ Call the PHR creation script with title and stage:
 Parse the JSON output to get: `id`, `path`, `context`, `stage`, `feature`
 
 **Routing is determined automatically:**
-- `constitution` → `history/prompts/constitution/`
-- Feature stages → `history/prompts/<feature-name>/`
-- `general` → `history/prompts/general/`
+- `constitution` → `docs/history/prompts/constitution/`
+- Feature stages → `docs/history/prompts/<feature-name>/`
+- `general` → `docs/history/prompts/general/`
 
 ## Step 4: Fill ALL Template Placeholders (Analyze→Measure)
 
@@ -178,9 +178,9 @@ As the main request completes, you MUST create and complete a PHR (Prompt Histor
 2) Generate Title and Determine Routing:
    - Generate Title: 3–7 words (slug for filename)
    - Route is automatically determined by stage:
-     - `constitution` → `history/prompts/constitution/`
-     - Feature stages → `history/prompts/<feature-name>/` (spec, plan, tasks, red, green, refactor, explainer, misc)
-     - `general` → `history/prompts/general/`
+     - `constitution` → `docs/history/prompts/constitution/`
+     - Feature stages → `docs/history/prompts/<feature-name>/` (spec, plan, tasks, red, green, refactor, explainer, misc)
+     - `general` → `docs/history/prompts/general/`
 
 3) Create and Fill PHR (Shell first; fallback agent‑native)
    - Run: `.specify/scripts/bash/create-phr.sh --title "<title>" --stage <stage> [--feature <name>] --json`
@@ -191,5 +191,5 @@ As the main request completes, you MUST create and complete a PHR (Prompt Histor
      - Fill placeholders and embed full PROMPT_TEXT and concise RESPONSE_TEXT
 
 4) Validate + report
-   - No unresolved placeholders; path under `history/prompts/` and matches stage; stage/title/date coherent; print ID + path + stage + title.
+   - No unresolved placeholders; path under `docs/history/prompts/` and matches stage; stage/title/date coherent; print ID + path + stage + title.
    - On failure: warn, don't block. Skip only for `/sp.phr`.

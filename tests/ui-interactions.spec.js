@@ -14,8 +14,8 @@ test.describe('Dashboard UI Interactions', () => {
   test('should display header with correct title', async ({ page }) => {
     const header = page.locator('header');
     await expect(header).toBeVisible();
-    await expect(page.getByText('Architecture Comparison Dashboard')).toBeVisible();
-    await expect(page.getByText('GraphQL Federation vs Kafka Projections')).toBeVisible();
+    await expect(page.getByText('Live Architectural Comparison')).toBeVisible();
+    await expect(page.getByText('GraphQL Federation vs Event-Driven Projections')).toBeVisible();
   });
 
   test('should display person selector with all options', async ({ page }) => {
@@ -47,8 +47,8 @@ test.describe('Dashboard UI Interactions', () => {
     await page.screenshot({ path: 'test-results/person-selection.png', fullPage: true });
   });
 
-  test('should display Query Both Architectures button', async ({ page }) => {
-    const button = page.getByRole('button', { name: /Query Both Architectures/i });
+  test('should display Query Both button', async ({ page }) => {
+    const button = page.getByRole('button', { name: /Query Both/i });
     await expect(button).toBeVisible();
     await expect(button).toBeEnabled();
   });
@@ -76,8 +76,8 @@ test.describe('Dashboard UI Interactions', () => {
     await expect(page.getByText('Query Composed View')).toBeVisible();
   });
 
-  test('should display Kafka Projections panel', async ({ page }) => {
-    const panel = page.locator('text=Kafka Projections').first();
+  test('should display Event-Driven Projections panel', async ({ page }) => {
+    const panel = page.locator('text=Event-Driven Projections').first();
     await expect(panel).toBeVisible();
 
     // Check panel contains expected elements
@@ -155,8 +155,8 @@ test.describe('Dashboard Query Operations', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
-    // Click Query Both Architectures button
-    const button = page.getByRole('button', { name: /Query Both Architectures/i });
+    // Click Query Both button
+    const button = page.getByRole('button', { name: /Query Both/i });
     await button.click();
 
     // Wait for both queries to complete
@@ -171,7 +171,7 @@ test.describe('Dashboard Query Operations', () => {
     await page.waitForTimeout(1000);
 
     // Click Query Both
-    const button = page.getByRole('button', { name: /Query Both Architectures/i });
+    const button = page.getByRole('button', { name: /Query Both/i });
     await button.click();
 
     // Wait for queries

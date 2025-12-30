@@ -1,7 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-test('click Query Both Architectures and capture result', async ({ page }) => {
+test('click Query Both and capture result', async ({ page }) => {
   await page.goto('http://localhost:3000');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(2000);
@@ -9,8 +9,8 @@ test('click Query Both Architectures and capture result', async ({ page }) => {
   // Screenshot before
   await page.screenshot({ path: 'test-results/before-query.png', fullPage: true });
 
-  // Click the Query Both Architectures button
-  const queryButton = page.locator('button:has-text("Query Both Architectures")');
+  // Click the Query Both button
+  const queryButton = page.locator('button:has-text("Query Both")');
   await queryButton.click();
 
   // Wait for queries to complete

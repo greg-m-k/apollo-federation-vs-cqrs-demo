@@ -1,11 +1,33 @@
-# Apollo Federation vs Kafka Projections Demo
+# Apollo Federation vs Event-Driven Projections Demo
+
+> **Architecture is all about tradeoffs.** This demo lets you experience those tradeoffs firsthand.
 
 A side-by-side demonstration of two distributed systems architectures:
 
-1. **GraphQL Federation** - Synchronous composition, real-time data, coupled availability
-2. **Kafka Projections** - Asynchronous events, local materialized views, eventual consistency
+1. **GraphQL Federation** — Synchronous composition, real-time data, coupled availability
+2. **Event-Driven Projections** — Asynchronous events, local materialized views, eventual consistency
 
 Both architectures model the same domain: **Person/Employee/Badge** across HR, Employment, and Security bounded contexts.
+
+### ⚠️ What This Is (and Isn't)
+
+This is a **learning tool**, not a production benchmark. The implementations are intentionally basic and unoptimized to clearly illustrate architectural patterns and their inherent tradeoffs. Real-world systems would include caching, connection pooling, optimized queries, and many other improvements.
+
+**The goal:** Help you understand *when* each pattern shines and *why* you might choose one over the other—not to declare a winner.
+
+---
+
+## Root Configuration Files
+
+The project root contains three orchestration files for different use cases:
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| **`Makefile`** | Cross-platform command shortcuts | Primary interface for most operations (`make up`, `make down`, etc.) |
+| **`Tiltfile`** | Kubernetes development orchestration | Used by Tilt for live-reload local development on K8s |
+| **`docker-compose.yml`** | Standalone Docker orchestration | When you want to run without Kubernetes |
+
+---
 
 ## Prerequisites
 
@@ -34,7 +56,7 @@ make prereqs
 
 ```bash
 make federation-only   # Just Federation architecture
-make kafka-only        # Just Kafka Projections architecture
+make event-only        # Just Event-Driven Projections architecture
 ```
 
 ### Stop
@@ -50,10 +72,10 @@ If you don't want to use Tilt/Kubernetes:
 
 ```bash
 # Build and start all services
-docker compose -f docker-compose.comparison.yml up --build
+docker compose up --build
 
 # Stop
-docker compose -f docker-compose.comparison.yml down
+docker compose down
 ```
 
 ### Manual Setup (No Make Required)
@@ -63,32 +85,32 @@ If you can't or don't want to use `make`:
 **Windows (PowerShell):**
 ```powershell
 # 1. Check prerequisites and pre-build
-.\tilt\scripts\setup-dev.ps1
+.\infra\tilt\scripts\setup-dev.ps1
 
 # 2. Start with Tilt
 tilt up
 
 # Or start with Docker Compose
-docker compose -f docker-compose.comparison.yml up --build
+docker compose up --build
 ```
 
 **Mac/Linux (Bash):**
 ```bash
 # 1. Check prerequisites and pre-build
-./tilt/scripts/setup-dev.sh
+./infra/tilt/scripts/setup-dev.sh
 
 # 2. Start with Tilt
 tilt up
 
 # Or start with Docker Compose
-docker compose -f docker-compose.comparison.yml up --build
+docker compose up --build
 ```
 
 **Skip pre-build entirely** (Tilt/Docker will build on first run, just slower):
 ```bash
 tilt up
 # or
-docker compose -f docker-compose.comparison.yml up --build
+docker compose up --build
 ```
 
 ## Access Points
@@ -107,14 +129,14 @@ Once running, open the **Dashboard** at http://localhost:3000
 ### What You Can Do
 
 1. **Compare Query Performance**
-   - The dashboard shows Federation vs Kafka Projections side-by-side
+   - The dashboard shows Federation vs Event-Driven side-by-side
    - See latency differences for the same queries
    - Observe real-time vs eventual consistency
 
 2. **Create Data**
    - Use the forms to add new people
    - Both architectures will reflect the new data
-   - Kafka Projections shows a brief lag before data appears
+   - Event-Driven shows a brief lag before data appears (Kafka propagation)
 
 3. **Test Failure Scenarios**
    ```bash
@@ -122,7 +144,7 @@ Once running, open the **Dashboard** at http://localhost:3000
    make restore-security  # Bring it back
    ```
    - Federation queries fail when services are down
-   - Kafka Projections continues working with stale data
+   - Event-Driven continues working with stale data
 
 4. **Run Automated Demo**
    ```bash
@@ -153,14 +175,19 @@ Once running, open the **Dashboard** at http://localhost:3000
 }
 ```
 
+---
+
 ## Architecture Comparison
 
+Both architectures serve the same data but make fundamentally different tradeoffs.
+
 ### GraphQL Federation
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Client Query                         │
 └─────────────────────────┬───────────────────────────────┘
-                          │ 3 network calls (sync)
+                          │ Router orchestrates subgraph calls
           ┌───────────────┼───────────────┐
           ▼               ▼               ▼
     ┌──────────┐    ┌──────────┐    ┌──────────┐
@@ -172,17 +199,25 @@ Once running, open the **Dashboard** at http://localhost:3000
     │ HR DB    │    │ Emp DB   │    │ Sec DB   │
     └──────────┘    └──────────┘    └──────────┘
 
-Latency: 45-100ms (additive)
-Consistency: REAL-TIME
-Failure: 1 service down = query fails
+✓ Data is always fresh (real-time)
+✗ Latency is additive across services
+✗ One service down = entire query fails
 ```
 
-### Kafka Projections
+### Event-Driven Projections
+
 ```
+WRITE PATH (async):
+┌──────────┐     ┌──────────┐     ┌──────────┐
+│ HR Event │ ──► │  Kafka   │ ──► │ Consumer │ ──► Local Projection
+│ Service  │     │          │     │          │
+└──────────┘     └──────────┘     └──────────┘
+
+READ PATH (sync):
 ┌─────────────────────────────────────────────────────────┐
 │                    Client Query                         │
 └─────────────────────────┬───────────────────────────────┘
-                          │ 1 local query
+                          │ Single local query
                           ▼
                     ┌──────────┐
                     │Projection│
@@ -190,53 +225,64 @@ Failure: 1 service down = query fails
                     └────┬─────┘
                          ▼
                     ┌──────────┐
-                    │  Local   │ ◄─── Consumer ◄─── Kafka
-                    │Projections│
+                    │  Local   │
+                    │   DB     │
                     └──────────┘
 
-Latency: 3-10ms (local)
-Consistency: 1-5s lag (eventual)
-Failure: Queries work (stale data)
+✓ Blazing fast reads (local data)
+✓ Services can be down; queries still work
+✗ Data may be stale (eventual consistency)
+✗ More complex infrastructure (Kafka, consumers)
 ```
+
+---
 
 ## Key Tradeoffs
 
-| Aspect | Federation | Kafka Projections |
+| Aspect | Federation | Event-Driven Projections |
 |--------|-----------|-------------------|
-| Query Latency | High (additive) | Low (local) |
-| Data Freshness | Real-time | Eventually consistent |
-| Service Coupling | Tight | Loose |
-| Failure Mode | Cascading | Isolated |
-| Complexity | Lower | Higher |
+| **Query Latency** | Higher (multiple network hops) | Lower (local database) |
+| **Data Freshness** | Real-time | Eventually consistent |
+| **Service Coupling** | Tight (all must be up) | Loose (async via Kafka) |
+| **Failure Mode** | Cascading failures | Graceful degradation |
+| **Write Complexity** | Simple (direct mutation) | Complex (event + propagation) |
+| **Infrastructure** | Simpler | More moving parts |
+
+**Neither is "better"** — the right choice depends on your requirements for consistency, availability, and latency.
+
+---
 
 ## Project Structure
 
 ```
+├── clients/
+│   └── dashboard/               # React comparison dashboard
+│
 ├── services/
 │   ├── federation/              # GraphQL Federation subgraphs
 │   │   ├── hr-subgraph/
 │   │   ├── employment-subgraph/
 │   │   └── security-subgraph/
-│   └── kafka/                     # Kafka Projections services
+│   └── event/                   # Event-Driven services
 │       ├── hr-events-service/
 │       ├── employment-events-service/
 │       ├── security-events-service/
-│       ├── projection-consumer/ # Kafka consumer
-│       └── query-service/       # Projection service
+│       ├── projection-consumer/
+│       └── query-service/
 │
-├── dashboard/                   # React comparison dashboard
-├── router/                      # Apollo Router config
-│   └── federation/              # Supergraph schemas
-│
-├── k8s/
-│   ├── federation/              # Federation k8s manifests
-│   ├── kafka/                   # Kafka k8s manifests
-│   └── infra/                   # Shared infrastructure (postgres, kafka)
+├── infra/                       # Infrastructure configs
+│   ├── docker/                  # Shared Dockerfiles — [README](infra/docker/README.md)
+│   ├── k8s/                     # Kubernetes manifests — [README](infra/k8s/README.md)
+│   ├── maven/                   # Shared Maven wrapper
+│   ├── router/                  # Apollo Router config — [README](infra/router/README.md)
+│   ├── scripts/                 # Demo scripts — [README](infra/scripts/README.md)
+│   └── tilt/                    # Tilt setup scripts — [README](infra/tilt/README.md)
 │
 ├── tests/                       # Playwright E2E tests
-├── scripts/                     # Demo scripts
-├── Tiltfile                     # Tilt configuration
-└── Makefile                     # Make commands
+│
+├── Makefile                     # Command shortcuts
+├── Tiltfile                     # Tilt/K8s orchestration
+└── docker-compose.yml           # Docker orchestration
 ```
 
 ## Technology Stack
@@ -257,7 +303,7 @@ make up               # Start all services
 make down             # Stop services
 make clean            # Full cleanup
 make federation-only  # Start Federation only
-make kafka-only       # Start Kafka Projections only
+make event-only       # Start Event-Driven Projections only
 make demo             # Run demo script
 make test             # Run Playwright tests
 make kill-security    # Stop Security service
@@ -270,7 +316,7 @@ make lag              # Show consumer lag
 
 **`make` command not found (Windows)**
 - Use Git Bash instead of PowerShell/CMD, or
-- Run PowerShell scripts directly: `.\tilt\scripts\setup-dev.ps1`
+- Run PowerShell scripts directly: `.\infra\tilt\scripts\setup-dev.ps1`
 
 **Docker build fails**
 - Ensure Docker Desktop is running
@@ -286,4 +332,4 @@ make lag              # Show consumer lag
 
 ## Documentation
 
-- [Tilt Development Guide](docs/tilt-development.md) - Detailed local dev setup
+- [Tilt Development Guide](docs/tilt-development.md) — Detailed local dev setup

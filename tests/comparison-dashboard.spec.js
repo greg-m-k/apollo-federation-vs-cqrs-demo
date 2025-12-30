@@ -31,8 +31,8 @@ test.describe('Federation vs Event-Driven Comparison Dashboard', () => {
     const federationPanel = page.locator('text=GraphQL Federation');
     await expect(federationPanel.first()).toBeVisible();
 
-    // Check for Kafka Projections panel
-    const kafkaPanel = page.locator('text=Kafka Projections');
+    // Check for Event-Driven Projections panel
+    const kafkaPanel = page.locator('text=Event-Driven Projections');
     await expect(kafkaPanel.first()).toBeVisible();
 
     await page.screenshot({ path: 'test-results/both-panels.png', fullPage: true });
@@ -73,8 +73,8 @@ test.describe('Dashboard - Query Operations', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
-    // Click Query Both Architectures button
-    await page.click('button:has-text("Query Both Architectures")');
+    // Click Query Both button
+    await page.click('button:has-text("Query Both")');
 
     // Wait for queries to complete
     await page.waitForTimeout(3000);
@@ -96,7 +96,7 @@ test.describe('Dashboard - Query Operations', () => {
     await page.waitForTimeout(2000);
 
     // Execute query
-    await page.click('button:has-text("Query Both Architectures")');
+    await page.click('button:has-text("Query Both")');
     await page.waitForTimeout(3000);
 
     // Check that diagrams show timing (ms labels)
@@ -205,7 +205,7 @@ test.describe('Dashboard - Create Person Modal', () => {
     await expect(page.locator('text=/Write:/').first()).toBeVisible();
 
     // Now query
-    await page.click('button:has-text("Query Both Architectures")');
+    await page.click('button:has-text("Query Both")');
     await page.waitForTimeout(3000);
 
     // Write badge should be gone (diagrams back to read flow)
@@ -401,7 +401,7 @@ test.describe('Architecture Comparison - Performance', () => {
     });
     const fedTime = Date.now() - fedStart;
 
-    // Kafka Projections query
+    // Event-Driven Projections query
     const edStart = Date.now();
     const edResponse = await request.get(`${KAFKA_QUERY_SERVICE}/api/persons`);
     const edTime = Date.now() - edStart;
@@ -478,7 +478,7 @@ test.describe('Resilience Tests', () => {
     await page.waitForTimeout(2000);
 
     // Execute a query to update service status
-    await page.click('button:has-text("Query Both Architectures")');
+    await page.click('button:has-text("Query Both")');
     await page.waitForTimeout(3000);
 
     // Check for service status section

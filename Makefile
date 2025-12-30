@@ -1,11 +1,11 @@
-# Makefile for Apollo Federation vs Kafka Projections Demo
-# ========================================================
+# Makefile for Apollo Federation vs Event-Driven Projections Demo
+# ================================================================
 
-.PHONY: help setup prereqs up down clean federation-only kafka-only kill-security restore-security logs-kafka lag demo test
+.PHONY: help setup prereqs up down clean federation-only event-only kill-security restore-security logs-kafka lag demo test
 
 # Default target
 help:
-	@echo "Apollo Federation vs Kafka Projections - Available Commands:"
+	@echo "Apollo Federation vs Event-Driven Projections - Available Commands:"
 	@echo ""
 	@echo "  SETUP"
 	@echo "  make setup            - Install prerequisites check + initial build"
@@ -17,7 +17,7 @@ help:
 	@echo "  make clean            - Full cleanup (delete namespaces)"
 	@echo ""
 	@echo "  make federation-only  - Start only Federation architecture"
-	@echo "  make kafka-only       - Start only Kafka Projections architecture"
+	@echo "  make event-only       - Start only Event-Driven Projections architecture"
 	@echo ""
 	@echo "  DEMO & TESTING"
 	@echo "  make demo             - Run automated demo script"
@@ -38,17 +38,17 @@ help:
 # Setup - check prerequisites and pre-build
 setup:
 ifeq ($(OS),Windows_NT)
-	@powershell -ExecutionPolicy Bypass -File tilt/scripts/setup-dev.ps1
+	@powershell -ExecutionPolicy Bypass -File infra/tilt/scripts/setup-dev.ps1
 else
-	@./tilt/scripts/setup-dev.sh
+	@./infra/tilt/scripts/setup-dev.sh
 endif
 
 # Just check prerequisites
 prereqs:
 ifeq ($(OS),Windows_NT)
-	@powershell -ExecutionPolicy Bypass -File tilt/scripts/setup-dev.ps1 -CheckOnly
+	@powershell -ExecutionPolicy Bypass -File infra/tilt/scripts/setup-dev.ps1 -CheckOnly
 else
-	@./tilt/scripts/setup-dev.sh --check-only
+	@./infra/tilt/scripts/setup-dev.sh --check-only
 endif
 
 # Start everything with Tilt
@@ -71,10 +71,10 @@ federation-only:
 	@echo "Starting Federation stack only..."
 	tilt up -- --federation-only
 
-# Start only Kafka Projections side
-kafka-only:
-	@echo "Starting Kafka Projections stack only..."
-	tilt up -- --kafka-only
+# Start only Event-Driven Projections side
+event-only:
+	@echo "Starting Event-Driven Projections stack only..."
+	tilt up -- --event-only
 
 # Simulate Security service failure
 kill-security:
@@ -84,7 +84,7 @@ kill-security:
 	@echo ""
 	@echo "Security services stopped!"
 	@echo "Federation queries touching Security will now fail."
-	@echo "Kafka Projections queries will continue to work with stale data."
+	@echo "Event-Driven queries will continue to work with stale data."
 
 # Restore Security service
 restore-security:
@@ -106,11 +106,11 @@ lag:
 # Run automated demo
 demo:
 ifeq ($(OS),Windows_NT)
-	@powershell -ExecutionPolicy Bypass -File scripts/demo.ps1
+	@powershell -ExecutionPolicy Bypass -File infra/scripts/demo.ps1
 else
-	@./scripts/demo.sh
+	@./infra/scripts/demo.sh
 endif
 
-# Run tests
+# Run tests (installs deps if needed)
 test:
-	npx playwright test tests/
+	cd tests && npm install && npx playwright install --with-deps chromium && npx playwright test

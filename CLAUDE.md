@@ -12,13 +12,13 @@ Run these slash commands in sequence to develop features:
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| `/sp.specify <description>` | Create feature spec from natural language | `specs/<n>-<name>/spec.md` |
+| `/sp.specify <description>` | Create feature spec from natural language | `docs/specs/<n>-<name>/spec.md` |
 | `/sp.clarify` | Identify gaps in current spec | Updated spec with clarifications |
 | `/sp.plan` | Generate technical plan + research | `plan.md`, `research.md`, `data-model.md`, `contracts/` |
 | `/sp.tasks` | Break plan into actionable tasks | `tasks.md` with checkboxes |
 | `/sp.implement` | Execute tasks from tasks.md | Implementation code |
 | `/sp.analyze` | Cross-artifact consistency check | Validation report |
-| `/sp.adr <title>` | Document architectural decision | `history/adr/<id>-<slug>.md` |
+| `/sp.adr <title>` | Document architectural decision | `docs/history/adr/<id>-<slug>.md` |
 | `/sp.constitution` | Create/update project principles | `.specify/memory/constitution.md` |
 | `/sp.git.commit_pr` | Commit work and create PR | Git commit + PR |
 
@@ -48,21 +48,21 @@ Run these slash commands in sequence to develop features:
 
 .claude/commands/             # Skill definitions for slash commands
 
-specs/<n>-<feature>/          # Feature artifacts (created per feature)
-├── spec.md                   # Requirements (WHAT, not HOW)
-├── plan.md                   # Technical approach
-├── tasks.md                  # Implementation checklist
-├── research.md               # Technical decisions
-├── data-model.md             # Entity definitions
-├── contracts/                # API specifications
-└── checklists/               # Quality validation
-
-history/
-├── prompts/                  # Prompt History Records (PHR)
-│   ├── constitution/
-│   ├── <feature-name>/
-│   └── general/
-└── adr/                      # Architecture Decision Records
+docs/
+├── specs/<n>-<feature>/      # Feature artifacts (created per feature)
+│   ├── spec.md               # Requirements (WHAT, not HOW)
+│   ├── plan.md               # Technical approach
+│   ├── tasks.md              # Implementation checklist
+│   ├── research.md           # Technical decisions
+│   ├── data-model.md         # Entity definitions
+│   ├── contracts/            # API specifications
+│   └── checklists/           # Quality validation
+└── history/
+    ├── prompts/              # Prompt History Records (PHR)
+    │   ├── constitution/
+    │   ├── <feature-name>/
+    │   └── general/
+    └── adr/                  # Architecture Decision Records
 ```
 
 ## SDD Development Guidelines
@@ -82,10 +82,10 @@ You are an expert AI assistant specializing in Spec-Driven Development (SDD). Yo
 ## Core Guarantees (Product Promise)
 
 - Record every user input verbatim in a Prompt History Record (PHR) after every user message. Do not truncate; preserve full multiline input.
-- PHR routing (all under `history/prompts/`):
-  - Constitution → `history/prompts/constitution/`
-  - Feature-specific → `history/prompts/<feature-name>/`
-  - General → `history/prompts/general/`
+- PHR routing (all under `docs/history/prompts/`):
+  - Constitution → `docs/history/prompts/constitution/`
+  - Feature-specific → `docs/history/prompts/<feature-name>/`
+  - General → `docs/history/prompts/general/`
 - ADR suggestions: when an architecturally significant decision is detected, suggest: "📋 Architectural decision detected: <brief>. Document? Run `/sp.adr <title>`." Never auto‑create ADRs; require user consent.
 
 ## Development Guidelines
@@ -114,10 +114,10 @@ After completing requests, you **MUST** create a PHR (Prompt History Record).
 2) Generate title
    - 3–7 words; create a slug for the filename.
 
-2a) Resolve route (all under history/prompts/)
-  - `constitution` → `history/prompts/constitution/`
-  - Feature stages (spec, plan, tasks, red, green, refactor, explainer, misc) → `history/prompts/<feature-name>/` (requires feature context)
-  - `general` → `history/prompts/general/`
+2a) Resolve route (all under docs/history/prompts/)
+  - `constitution` → `docs/history/prompts/constitution/`
+  - Feature stages (spec, plan, tasks, red, green, refactor, explainer, misc) → `docs/history/prompts/<feature-name>/` (requires feature context)
+  - `general` → `docs/history/prompts/general/`
 
 3) Prefer agent‑native flow (no shell)
    - Read the PHR template from one of:
@@ -125,9 +125,9 @@ After completing requests, you **MUST** create a PHR (Prompt History Record).
      - `templates/phr-template.prompt.md`
    - Allocate an ID (increment; on collision, increment again).
    - Compute output path based on stage:
-     - Constitution → `history/prompts/constitution/<ID>-<slug>.constitution.prompt.md`
-     - Feature → `history/prompts/<feature-name>/<ID>-<slug>.<stage>.prompt.md`
-     - General → `history/prompts/general/<ID>-<slug>.general.prompt.md`
+     - Constitution → `docs/history/prompts/constitution/<ID>-<slug>.constitution.prompt.md`
+     - Feature → `docs/history/prompts/<feature-name>/<ID>-<slug>.<stage>.prompt.md`
+     - General → `docs/history/prompts/general/<ID>-<slug>.general.prompt.md`
    - Fill ALL placeholders in YAML and body:
      - ID, TITLE, STAGE, DATE_ISO (YYYY‑MM‑DD), SURFACE="agent"
      - MODEL (best known), FEATURE (or "none"), BRANCH, USER
@@ -149,10 +149,10 @@ After completing requests, you **MUST** create a PHR (Prompt History Record).
    - Run: `.specify/scripts/bash/create-phr.sh --title "<title>" --stage <stage> [--feature <name>] --json`
    - Then open/patch the created file to ensure all placeholders are filled and prompt/response are embedded.
 
-6) Routing (automatic, all under history/prompts/)
-   - Constitution → `history/prompts/constitution/`
-   - Feature stages → `history/prompts/<feature-name>/` (auto-detected from branch or explicit feature context)
-   - General → `history/prompts/general/`
+6) Routing (automatic, all under docs/history/prompts/)
+   - Constitution → `docs/history/prompts/constitution/`
+   - Feature stages → `docs/history/prompts/<feature-name>/` (auto-detected from branch or explicit feature context)
+   - General → `docs/history/prompts/general/`
 
 7) Post‑creation validations (must pass)
    - No unresolved placeholders (e.g., `{{THIS}}`, `[THAT]`).
@@ -193,7 +193,7 @@ You are not expected to solve every problem autonomously. You MUST invoke the us
 2) List constraints, invariants, non‑goals.
 3) Produce the artifact with acceptance checks inlined (checkboxes or tests where applicable).
 4) Add follow‑ups and risks (max 3 bullets).
-5) Create PHR in appropriate subdirectory under `history/prompts/` (constitution, feature-name, or general).
+5) Create PHR in appropriate subdirectory under `docs/history/prompts/` (constitution, feature-name, or general).
 6) If plan/tasks identified decisions that meet significance, surface ADR suggestion text as described above.
 
 ### Minimum acceptance criteria
@@ -264,11 +264,11 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 ## Basic Project Structure
 
 - `.specify/memory/constitution.md` — Project principles
-- `specs/<feature>/spec.md` — Feature requirements
-- `specs/<feature>/plan.md` — Architecture decisions
-- `specs/<feature>/tasks.md` — Testable tasks with cases
-- `history/prompts/` — Prompt History Records
-- `history/adr/` — Architecture Decision Records
+- `docs/specs/<feature>/spec.md` — Feature requirements
+- `docs/specs/<feature>/plan.md` — Architecture decisions
+- `docs/specs/<feature>/tasks.md` — Testable tasks with cases
+- `docs/history/prompts/` — Prompt History Records
+- `docs/history/adr/` — Architecture Decision Records
 - `.specify/` — SpecKit Plus templates and scripts
 
 ## Code Standards

@@ -1,0 +1,23 @@
+# Apollo Federation Supergraph Configuration
+# This config is used by rover to compose the supergraph schema
+#
+# Schemas are owned by each service and pulled from their respective folders.
+# Run: rover supergraph compose --config supergraph.yaml > supergraph.graphql
+
+federation_version: =2.3.2
+
+subgraphs:
+  hr:
+    routing_url: http://hr-subgraph:8080/graphql
+    schema:
+      file: ../../../services/federation/hr-subgraph/schema.graphql
+
+  employment:
+    routing_url: http://employment-subgraph:8080/graphql
+    schema:
+      file: ../../../services/federation/employment-subgraph/schema.graphql
+
+  security:
+    routing_url: http://security-subgraph:8080/graphql
+    schema:
+      file: ../../../services/federation/security-subgraph/schema.graphql

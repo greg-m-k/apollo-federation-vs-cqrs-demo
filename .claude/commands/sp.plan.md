@@ -98,9 +98,9 @@ As the main request completes, you MUST create and complete a PHR (Prompt Histor
 2) Generate Title and Determine Routing:
    - Generate Title: 3–7 words (slug for filename)
    - Route is automatically determined by stage:
-     - `constitution` → `history/prompts/constitution/`
-     - Feature stages → `history/prompts/<feature-name>/` (spec, plan, tasks, red, green, refactor, explainer, misc)
-     - `general` → `history/prompts/general/`
+     - `constitution` → `docs/history/prompts/constitution/`
+     - Feature stages → `docs/history/prompts/<feature-name>/` (spec, plan, tasks, red, green, refactor, explainer, misc)
+     - `general` → `docs/history/prompts/general/`
 
 3) Create and Fill PHR (Shell first; fallback agent‑native)
    - Run: `.specify/scripts/bash/create-phr.sh --title "<title>" --stage <stage> [--feature <name>] --json`
@@ -111,5 +111,5 @@ As the main request completes, you MUST create and complete a PHR (Prompt Histor
      - Fill placeholders and embed full PROMPT_TEXT and concise RESPONSE_TEXT
 
 4) Validate + report
-   - No unresolved placeholders; path under `history/prompts/` and matches stage; stage/title/date coherent; print ID + path + stage + title.
+   - No unresolved placeholders; path under `docs/history/prompts/` and matches stage; stage/title/date coherent; print ID + path + stage + title.
    - On failure: warn, don't block. Skip only for `/sp.phr`.

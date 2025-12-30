@@ -149,7 +149,7 @@ try {
 
 Set-Location $repoRoot
 
-$specsDir = Join-Path $repoRoot 'specs'
+$specsDir = Join-Path $repoRoot 'docs' 'specs'
 New-Item -ItemType Directory -Path $specsDir -Force | Out-Null
 
 # Function to generate branch name with stop word filtering and length filtering
@@ -262,9 +262,9 @@ if (Test-Path $template) {
     New-Item -ItemType File -Path $specFile | Out-Null
 }
 
-# Auto-create history/prompts/<branch-name>/ directory (same as specs/<branch-name>/)
+# Auto-create docs/history/prompts/<branch-name>/ directory (same as docs/specs/<branch-name>/)
 # This keeps naming consistent across branch, specs, and prompts directories
-$promptsDir = Join-Path $repoRoot 'history' 'prompts' $branchName
+$promptsDir = Join-Path $repoRoot 'docs' 'history' 'prompts' $branchName
 New-Item -ItemType Directory -Path $promptsDir -Force | Out-Null
 
 # Set the SPECIFY_FEATURE environment variable for the current session
