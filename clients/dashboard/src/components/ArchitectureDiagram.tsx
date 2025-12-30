@@ -6,7 +6,8 @@ mermaid.initialize({
   theme: 'neutral',
   securityLevel: 'loose',
   themeCSS: `
-    .timing-label { fill: #d32f2f !important; font-style: italic !important; font-weight: bold !important; }
+    .edgeLabel { font-size: 0.7em !important; }
+    .edgeLabel p { font-size: 0.7em !important; }
   `
 });
 
@@ -215,7 +216,7 @@ graph TD
           const { svg } = await mermaid.render(id, diagram);
           containerRef.current.innerHTML = svg;
 
-          // Style edge labels (timing) to be red, bold, italic, smaller
+          // Style edge labels (timing) to be red, bold, italic
           const edgeLabels = containerRef.current.querySelectorAll('.edgeLabel');
           edgeLabels.forEach(label => {
             const text = label.textContent;
@@ -226,11 +227,9 @@ graph TD
                 el.style.setProperty('fill', '#d32f2f', 'important');
                 el.style.setProperty('font-weight', 'bold', 'important');
                 el.style.setProperty('font-style', 'italic', 'important');
-                el.style.setProperty('font-size', '0.7em', 'important');
               });
               // Also style the label container itself
               label.style.setProperty('color', '#d32f2f', 'important');
-              label.style.setProperty('font-size', '0.7em', 'important');
             }
           });
         } catch (e) {
