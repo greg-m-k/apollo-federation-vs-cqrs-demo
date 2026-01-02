@@ -7,8 +7,8 @@ target/
 *.log
 *.iml
 
-# Maven wrapper JAR (downloaded at build time)
-.mvn/wrapper/maven-wrapper.jar
+# Maven wrapper JAR - committed for reliability
+!infra/maven/.mvn/wrapper/maven-wrapper.jar
 
 # IDE
 .idea/
