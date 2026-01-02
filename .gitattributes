@@ -1,0 +1,11 @@
+# Binary files
+*.jar binary
+*.png binary
+*.ico binary
+*.gif binary
+*.jpg binary
+*.jpeg binary
+
+# Ensure shell scripts have LF endings on all platforms
+*.sh text eol=lf
+mvnw text eol=lf
