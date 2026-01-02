@@ -16,7 +16,7 @@ load('ext://restart_process', 'docker_build_with_restart')
 
 # Cross-platform Maven wrapper command
 # Runs from infra/maven where .mvn/wrapper/ lives
-mvn_prefix = 'cd infra\\\\maven && .\\\\mvnw.cmd' if os.name == 'nt' else 'cd infra/maven && ./mvnw'
+mvn_prefix = 'cd infra\\\\maven && .\\\\mvnw.cmd' if os.name == 'nt' else 'cd infra/maven && sh ./mvnw'
 
 # ============================================================================
 # CONFIGURATION
